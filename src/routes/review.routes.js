@@ -1,0 +1,13 @@
+const express = require("express");
+const router = express.Router();
+const reviewController = require("../controllers/review.controller");
+const authMiddleware = require("../middlewares/auth.middleware");
+const adminMiddleware = require("../middlewares/admin.middleware");
+
+router.get("/", authMiddleware, adminMiddleware, reviewController.getAllReviews);
+router.get("/product/:productId", reviewController.getReviewsByProduct);
+router.post("/", authMiddleware, reviewController.createReview);
+router.put("/:id", authMiddleware, reviewController.updateReview);
+router.delete("/:id", authMiddleware, adminMiddleware, reviewController.deleteReview);
+
+module.exports = router;
