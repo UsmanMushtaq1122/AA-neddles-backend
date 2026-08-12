@@ -19,6 +19,7 @@ router.post(
   validate(checkDuplicatesSchema),
   productController.checkProductDuplicates
 );
+
 router.post(
   "/",
   authMiddleware,
