@@ -45,6 +45,33 @@ exports.updateOrderStatus = async (req, res, next) => {
   }
 };
 
+exports.updateOrderNotes = async (req, res, next) => {
+  try {
+    const result = await orderService.updateOrderNotes(req.params.id, req.body.notes);
+    res.status(200).json({ success: true, data: result });
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.updateOrderTracking = async (req, res, next) => {
+  try {
+    const result = await orderService.updateOrderTracking(req.params.id, req.body.trackingNumber);
+    res.status(200).json({ success: true, data: result });
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.trackOrder = async (req, res, next) => {
+  try {
+    const result = await orderService.trackOrder(req.params.orderNumber);
+    res.status(200).json({ success: true, data: result });
+  } catch (error) {
+    next(error);
+  }
+};
+
 exports.deleteOrder = async (req, res, next) => {
   try {
     const result = await orderService.deleteOrder(req.params.id);

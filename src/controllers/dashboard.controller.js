@@ -18,6 +18,15 @@ exports.getSalesData = async (req, res, next) => {
   }
 };
 
+exports.getCustomerGrowth = async (req, res, next) => {
+  try {
+    const result = await dashboardService.getCustomerGrowth(req.query);
+    res.status(200).json({ success: true, data: result });
+  } catch (error) {
+    next(error);
+  }
+};
+
 exports.getRecentOrders = async (req, res, next) => {
   try {
     const result = await dashboardService.getRecentOrders();

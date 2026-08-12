@@ -16,12 +16,12 @@ exports.getAllTestimonials = async (req, res, next) => {
 
 exports.createTestimonial = async (req, res, next) => {
   try {
-    const { name, comment, rating, isActive } = req.body;
+    const { customerName, content, rating, isActive } = req.body;
     const image = req.file ? req.file.path : null;
     const imagePublicId = req.file ? req.file.filename : null;
 
     const testimonial = await prisma.testimonial.create({
-      data: { name, image, imagePublicId, comment, rating: parseInt(rating), isActive: isActive === "true" || isActive === true },
+      data: { customerName, image, imagePublicId, content, rating: parseInt(rating), isActive: isActive === "true" || isActive === true },
     });
     res.status(201).json({ success: true, data: enrichWithOptimizedUrls(testimonial) });
   } catch (error) {
@@ -37,10 +37,10 @@ exports.updateTestimonial = async (req, res, next) => {
     const testimonial = await prisma.testimonial.findUnique({ where: { id: req.params.id } });
     if (!testimonial) throw new AppError("Testimonial not found", 404);
 
-    const { name, comment, rating, isActive } = req.body;
+    const { customerName, content, rating, isActive } = req.body;
     const data = {};
-    if (name) data.name = name;
-    if (comment) data.comment = comment;
+    if (customerName) data.customerName = customerName;
+    if (content) data.content = content;
     if (rating) data.rating = parseInt(rating);
     if (isActive !== undefined) data.isActive = isActive === "true" || isActive === true;
 

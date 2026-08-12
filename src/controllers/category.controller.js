@@ -9,6 +9,15 @@ exports.getAllCategories = async (req, res, next) => {
   }
 };
 
+exports.getCategoryBySlug = async (req, res, next) => {
+  try {
+    const result = await categoryService.getCategoryBySlug(req.params.slug);
+    res.status(200).json({ success: true, data: result });
+  } catch (error) {
+    next(error);
+  }
+};
+
 exports.getCategoryById = async (req, res, next) => {
   try {
     const result = await categoryService.getCategoryById(req.params.id);

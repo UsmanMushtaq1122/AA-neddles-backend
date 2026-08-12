@@ -5,7 +5,11 @@ const { cloudinary, getCloudinaryFolder } = require("../utils/cloudinary");
 const storage = new CloudinaryStorage({
   cloudinary,
   params: async (req, file) => {
-    const uploadType = req.uploadType || "products";
+    const VALID_TYPES = ["products", "categories", "banners", "testimonials", "blogs", "profile"];
+    const uploadType = req.uploadType;
+    if (!uploadType || !VALID_TYPES.includes(uploadType)) {
+      throw new Error(`Invalid upload type "${uploadType}". Allowed: ${VALID_TYPES.join(", ")}`);
+    }
     const folder = getCloudinaryFolder(uploadType);
     const entitySlug = req.body?.slug || req.body?.name || "";
 
@@ -38,7 +42,11 @@ const fileFilter = (req, file, cb) => {
   const mimetype = allowedTypes.test(file.mimetype);
 
   if (!extname || !mimetype) {
-    return cb(new Error("Only image files are allowed (jpeg, jpg, png, gif, webp, avif)"), false);
+    const err = new Error(
+      "Only image files are allowed (jpeg, jpg, png, gif, webp, avif)"
+    );
+    err.statusCode = 400;
+    return cb(err, false);
   }
 
   cb(null, true);
@@ -47,7 +55,29 @@ const fileFilter = (req, file, cb) => {
 const upload = multer({
   storage,
   fileFilter,
-  limits: { fileSize: 5 * 1024 * 1024 },
+  limits: { fileSize: 10 * 1024 * 1024 },
 });
 
-module.exports = upload;
+const isMultipartRequest = (req) => {
+  const contentType = req.headers["content-type"] || "";
+  return contentType.toLowerCase().includes("multipart/form-data");
+};
+
+const single = (fieldName) => (req, res, next) => {
+  if (!isMultipartRequest(req)) {
+    return next();
+  }
+  return upload.single(fieldName)(req, res, next);
+};
+
+const array = (fieldName, maxCount) => (req, res, next) => {
+  if (!isMultipartRequest(req)) {
+    return next();
+  }
+  return upload.array(fieldName, maxCount)(req, res, next);
+};
+
+module.exports = {
+  single,
+  array,
+};

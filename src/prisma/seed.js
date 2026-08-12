@@ -6,13 +6,25 @@ const prisma = new PrismaClient();
 async function main() {
   const hashedPassword = await bcrypt.hash("admin123", 12);
 
-  const admin = await prisma.user.upsert({
+  const admin1 = await prisma.user.upsert({
     where: { email: "admin@neddles.com" },
     update: {},
     create: {
       email: "admin@neddles.com",
       name: "Admin",
       password: hashedPassword,
+      role: "ADMIN",
+    },
+  });
+
+  const admin2Hashed = await bcrypt.hash("Password123@", 12);
+  const admin2 = await prisma.user.upsert({
+    where: { email: "aaneddles@gmail.com" },
+    update: {},
+    create: {
+      email: "aaneddles@gmail.com",
+      name: "AA Neddles Admin",
+      password: admin2Hashed,
       role: "ADMIN",
     },
   });
@@ -33,10 +45,11 @@ async function main() {
     update: {},
     create: {
       id: customerUser.id,
+      userId: customerUser.id,
       name: "Test Customer",
       email: "customer@neddles.com",
       phone: "+1234567890",
-      address: "123 Test Street, Test City",
+      addresses: [{ label: "Default Address", address: "123 Test Street, Test City", city: "Test City", isDefault: true }],
     },
   });
 
@@ -131,7 +144,7 @@ async function main() {
     update: {},
     create: {
       id: "testimonial-1",
-      name: "Sarah Johnson",
+      customerName: "Sarah Johnson",
       comment: "Amazing quality clothing! Love every piece I've ordered.",
       rating: 5,
       isActive: true,

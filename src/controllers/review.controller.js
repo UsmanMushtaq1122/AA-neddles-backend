@@ -66,12 +66,13 @@ exports.updateReview = async (req, res, next) => {
       throw new AppError("You can only update your own reviews", 403);
     }
 
-    const { rating, comment } = req.body;
+    const { rating, comment, isApproved } = req.body;
     const updated = await prisma.review.update({
       where: { id: req.params.id },
       data: {
         ...(rating !== undefined && { rating: parseInt(rating) }),
         ...(comment !== undefined && { comment }),
+        ...(isApproved !== undefined && { isApproved: Boolean(isApproved) }),
       },
       include: { customer: { select: { id: true, name: true } } },
     });

@@ -1,5 +1,6 @@
 const prisma = require("../config/db");
 const crypto = require("crypto");
+const pagination = require("../utils/pagination");
 const AppError = require("../utils/AppError");
 
 exports.createPayment = async ({ orderId, amount, paymentMethod, customerId }) => {
@@ -32,25 +33,36 @@ exports.createPayment = async ({ orderId, amount, paymentMethod, customerId }) =
   return payment;
 };
 
-exports.verifyPayment = async (paymentId, { status, gatewayResponse }) => {
+exports.verifyPayment = async (paymentId, adminUser) => {
+  if (!adminUser || (adminUser.role !== "ADMIN" && adminUser.role !== "SUPER_ADMIN")) {
+    throw new AppError("Only admins can verify payments", 403);
+  }
+
   const payment = await prisma.payment.findUnique({ where: { id: paymentId } });
   if (!payment) throw new AppError("Payment not found", 404);
+
+  if (payment.status !== "PENDING") {
+    throw new AppError("Payment is not in a pending state", 400);
+  }
+
+  const gatewayResponse = {
+    verifiedBy: adminUser.id,
+    gateway: payment.paymentMethod,
+    transactionId: payment.transactionId,
+    status: "success",
+    verifiedAt: new Date().toISOString(),
+  };
 
   const updatedPayment = await prisma.$transaction(async (tx) => {
     const p = await tx.payment.update({
       where: { id: paymentId },
-      data: {
-        status: status === "success" ? "COMPLETED" : "FAILED",
-        gatewayResponse: gatewayResponse || null,
-      },
+      data: { status: "COMPLETED", gatewayResponse },
     });
 
-    if (status === "success") {
-      await tx.order.update({
-        where: { id: payment.orderId },
-        data: { status: "CONFIRMED" },
-      });
-    }
+    await tx.order.update({
+      where: { id: payment.orderId },
+      data: { status: "CONFIRMED", paymentStatus: "PAID" },
+    });
 
     return p;
   });
@@ -58,7 +70,12 @@ exports.verifyPayment = async (paymentId, { status, gatewayResponse }) => {
   return updatedPayment;
 };
 
-exports.getPaymentByOrder = async (orderId) => {
+exports.getPaymentByOrder = async (orderId, user) => {
+  const order = await prisma.order.findUnique({ where: { id: orderId }, select: { customerId: true } });
+  if (!order) return null;
+  if (user.role !== "ADMIN" && user.role !== "SUPER_ADMIN" && order.customerId !== user.customerId) {
+    return null;
+  }
   const payment = await prisma.payment.findFirst({
     where: { orderId },
     orderBy: { createdAt: "desc" },
@@ -68,7 +85,7 @@ exports.getPaymentByOrder = async (orderId) => {
 
 exports.getAllPayments = async (query) => {
   const { page = 1, limit = 10, status } = query;
-  const skip = (parseInt(page) - 1) * parseInt(limit);
+  const skip = pagination.getSkip(page, limit);
   const take = Math.min(parseInt(limit), 100);
 
   const where = {};
@@ -87,3 +104,46 @@ exports.getAllPayments = async (query) => {
 
   return { payments, total, page: parseInt(page), totalPages: Math.ceil(total / take) };
 };
+
+exports.refundPayment = async (paymentId, { amount, reason }) => {
+  const payment = await prisma.payment.findUnique({ where: { id: paymentId } });
+  if (!payment) throw new AppError("Payment not found", 404);
+
+  if (payment.status !== "COMPLETED") {
+    throw new AppError("Only completed payments can be refunded", 400);
+  }
+
+  const refundAmt = amount ? parseFloat(amount) : payment.amount;
+  if (isNaN(refundAmt) || refundAmt <= 0 || refundAmt > payment.amount) {
+    throw new AppError("Invalid refund amount", 400);
+  }
+
+  const isPartial = refundAmt < payment.amount;
+  const newStatus = isPartial ? "PARTIALLY_REFUNDED" : "REFUNDED";
+
+  const updatedPayment = await prisma.$transaction(async (tx) => {
+    const p = await tx.payment.update({
+      where: { id: paymentId },
+      data: {
+        status: newStatus,
+        gatewayResponse: {
+          refundReason: reason || "Admin refund",
+          refundedAmount: refundAmt,
+          refundedAt: new Date().toISOString(),
+        },
+      },
+    });
+
+    await tx.order.update({
+      where: { id: payment.orderId },
+      data: {
+        paymentStatus: newStatus,
+      },
+    });
+
+    return p;
+  });
+
+  return updatedPayment;
+};
+

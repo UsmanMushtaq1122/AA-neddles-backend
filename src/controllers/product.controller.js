@@ -9,10 +9,37 @@ exports.getAllProducts = async (req, res, next) => {
   }
 };
 
+exports.getProductFacets = async (req, res, next) => {
+  try {
+    const result = await productService.getProductFacets(req.query);
+    res.status(200).json({ success: true, data: result });
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.getProductBySlug = async (req, res, next) => {
+  try {
+    const result = await productService.getProductBySlug(req.params.slug);
+    res.status(200).json({ success: true, data: result });
+  } catch (error) {
+    next(error);
+  }
+};
+
 exports.getProductById = async (req, res, next) => {
   try {
     const result = await productService.getProductById(req.params.id);
     res.status(200).json({ success: true, data: result });
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.checkProductDuplicates = async (req, res, next) => {
+  try {
+    const duplicates = await productService.checkProductDuplicates(req.body);
+    res.status(200).json({ success: true, data: { duplicates } });
   } catch (error) {
     next(error);
   }

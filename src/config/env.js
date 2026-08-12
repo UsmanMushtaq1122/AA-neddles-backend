@@ -9,6 +9,7 @@ const env = {
   JWT_EXPIRES_IN: process.env.JWT_EXPIRES_IN || "15m",
   JWT_REFRESH_EXPIRES_IN: process.env.JWT_REFRESH_EXPIRES_IN || "30d",
   FRONTEND_URL: process.env.FRONTEND_URL || "http://localhost:3000",
+  ADMIN_URL: process.env.ADMIN_URL || "http://localhost:3001",
   SMTP_HOST: process.env.SMTP_HOST,
   SMTP_PORT: process.env.SMTP_PORT,
   SMTP_USER: process.env.SMTP_USER,
@@ -17,6 +18,17 @@ const env = {
   CLOUDINARY_CLOUD_NAME: process.env.CLOUDINARY_CLOUD_NAME,
   CLOUDINARY_API_KEY: process.env.CLOUDINARY_API_KEY,
   CLOUDINARY_API_SECRET: process.env.CLOUDINARY_API_SECRET,
+  LOW_STOCK_THRESHOLD: parseInt(process.env.LOW_STOCK_THRESHOLD, 10) || 10,
+  LOW_STOCK_CRON: process.env.LOW_STOCK_CRON || "0 9 * * *",
+  ORDER_REMINDER_CRON: process.env.ORDER_REMINDER_CRON || "0 9 * * *",
+  ADMIN_EMAIL: process.env.ADMIN_EMAIL || "",
+  ENABLE_CRON_JOBS: process.env.ENABLE_CRON_JOBS !== "false",
+  INVENTORY_SCAN_BATCH_SIZE: parseInt(process.env.INVENTORY_SCAN_BATCH_SIZE, 10) || 500,
+  NEWSLETTER_CRON: process.env.NEWSLETTER_CRON || "0 10 * * *",
+  NEWSLETTER_BATCH_SIZE: parseInt(process.env.NEWSLETTER_BATCH_SIZE, 10) || 50,
+  NEWSLETTER_BATCH_DELAY: parseInt(process.env.NEWSLETTER_BATCH_DELAY, 10) || 3000,
+  NEWSLETTER_MAX_ATTEMPTS: parseInt(process.env.NEWSLETTER_MAX_ATTEMPTS, 10) || 3,
+  NEWSLETTER_FROM_NAME: process.env.NEWSLETTER_FROM_NAME || "AA NEEDLES",
 };
 
 if (!env.JWT_SECRET || env.JWT_SECRET.length < 32) {
@@ -41,6 +53,11 @@ if (!env.CLOUDINARY_API_KEY) {
 
 if (!env.CLOUDINARY_API_SECRET) {
   throw new Error("FATAL: CLOUDINARY_API_SECRET must be set in environment variables.");
+}
+
+const smtpVars = [env.SMTP_HOST, env.SMTP_PORT, env.SMTP_USER, env.SMTP_PASS, env.EMAIL_FROM];
+if (smtpVars.some((v) => !v)) {
+  console.warn("WARNING: SMTP environment variables are not fully configured. Email features (password reset, order confirmations) will fail at runtime.");
 }
 
 module.exports = env;

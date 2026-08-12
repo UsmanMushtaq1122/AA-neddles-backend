@@ -1,5 +1,12 @@
 const winston = require("winston");
+const path = require("path");
+const fs = require("fs");
 const env = require("./env");
+
+const logsDir = path.join(__dirname, "..", "..", "logs");
+if (!fs.existsSync(logsDir)) {
+  fs.mkdirSync(logsDir, { recursive: true });
+}
 
 const logger = winston.createLogger({
   level: env.NODE_ENV === "production" ? "info" : "debug",
@@ -10,8 +17,8 @@ const logger = winston.createLogger({
   ),
   defaultMeta: { service: "neddles-backend" },
   transports: [
-    new winston.transports.File({ filename: "logs/error.log", level: "error" }),
-    new winston.transports.File({ filename: "logs/combined.log" }),
+    new winston.transports.File({ filename: path.join(logsDir, "error.log"), level: "error" }),
+    new winston.transports.File({ filename: path.join(logsDir, "combined.log") }),
   ],
 });
 

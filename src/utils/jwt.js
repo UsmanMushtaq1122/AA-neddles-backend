@@ -18,5 +18,13 @@ exports.verifyRefreshToken = (token) => {
 };
 
 exports.decodeToken = (token) => {
-  return jwt.decode(token);
+  try {
+    return jwt.verify(token, env.JWT_SECRET);
+  } catch {
+    try {
+      return jwt.verify(token, env.JWT_REFRESH_SECRET);
+    } catch {
+      throw new Error("Invalid token");
+    }
+  }
 };
