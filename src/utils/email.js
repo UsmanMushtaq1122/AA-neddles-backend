@@ -15,8 +15,10 @@ const transporter = nodemailer.createTransport({
 async function verifyTransporter() {
   try {
     await transporter.verify();
+    console.log("SMTP connection verified successfully");
   } catch (err) {
-    console.warn("SMTP not configured — email features will fail silently. Set SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, EMAIL_FROM in .env");
+    console.error("SMTP connection failed:", err.message);
+    console.error("Check SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, EMAIL_FROM in .env");
   }
 }
 verifyTransporter();

@@ -11,7 +11,7 @@ const env = {
   FRONTEND_URL: process.env.FRONTEND_URL || "http://localhost:3000",
   ADMIN_URL: process.env.ADMIN_URL || "http://localhost:3001",
   SMTP_HOST: process.env.SMTP_HOST,
-  SMTP_PORT: process.env.SMTP_PORT,
+  SMTP_PORT: parseInt(process.env.SMTP_PORT, 10) || 587,
   SMTP_USER: process.env.SMTP_USER,
   SMTP_PASS: process.env.SMTP_PASS,
   EMAIL_FROM: process.env.EMAIL_FROM,
