@@ -4,7 +4,7 @@
   "description": "Backend API for Neddles",
   "main": "src/server.js",
   "scripts": {
-    "start": "node src/server.js",
+    "start": "NODE_ENV=production node src/server.js",
     "dev": "nodemon src/server.js",
     "test": "jest --forceExit --detectOpenHandles",
     "test:coverage": "jest --coverage --forceExit --detectOpenHandles",
@@ -45,3 +45,4 @@
     "supertest": "^7.2.2"
   }
 }
+
