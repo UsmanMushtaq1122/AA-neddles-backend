@@ -489,6 +489,9 @@ exports.socialLogin = async ({ provider, credential }) => {
   let email, name, avatar;
 
   if (provider === "google") {
+    if (!process.env.GOOGLE_CLIENT_ID) {
+      throw new AppError("Google sign-in is not configured on the server", 503);
+    }
     if (!credential) {
       throw new AppError("Google credential is required", 400);
     }
@@ -502,6 +505,10 @@ exports.socialLogin = async ({ provider, credential }) => {
       name = payload.name;
       avatar = payload.picture;
     } catch (err) {
+      console.error("Google ID token verification failed:", err.message);
+      if (/audience|recipient/i.test(err.message)) {
+        throw new AppError("Google client ID mismatch. Use the same OAuth web client ID in the frontend and backend, then restart both.", 401);
+      }
       throw new AppError("Invalid Google credential", 401);
     }
   } else {
