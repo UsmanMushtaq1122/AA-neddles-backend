@@ -41,12 +41,12 @@ const withRetry = async (fn, context) => {
   throw new AppError(`Cloudinary ${context} failed after ${MAX_RETRIES + 1} attempts: ${lastError.message}`, 500);
 };
 
-const deleteFromCloudinary = async (publicId) => {
+const deleteFromCloudinary = async (publicId, resourceType = "image") => {
   if (!publicId) return { result: "not_found" };
 
   return withRetry(async () => {
     const result = await cloudinary.uploader.destroy(publicId, {
-      resource_type: "image",
+      resource_type: resourceType,
       timeout: UPLOAD_TIMEOUT,
     });
     return result;
@@ -56,7 +56,7 @@ const deleteFromCloudinary = async (publicId) => {
 const extractPublicIdFromUrl = (url) => {
   if (!url) return null;
 
-  const cloudinaryUrlPattern = /\/v\d+\/(.+)\.(jpg|jpeg|png|gif|webp|avif)/i;
+  const cloudinaryUrlPattern = /\/v\d+\/(.+)\.(jpg|jpeg|png|gif|webp|avif|mp4|webm|mov|m4v)/i;
   const match = url.match(cloudinaryUrlPattern);
 
   if (match && match[1]) {

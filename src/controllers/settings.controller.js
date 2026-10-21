@@ -29,6 +29,28 @@ exports.upsert = async (req, res, next) => {
   } catch (error) { next(error); }
 };
 
+exports.upsertAll = async (req, res, next) => {
+  try {
+    const entries = Object.entries(req.body);
+    const settings = await prisma.$transaction(
+      entries.map(([key, value]) =>
+        prisma.siteSetting.upsert({
+          where: { key },
+          update: { value },
+          create: { key, value },
+        })
+      )
+    );
+    const result = {};
+    settings.forEach((setting) => {
+      result[setting.key] = setting.value;
+    });
+    res.json({ success: true, data: result });
+  } catch (error) {
+    next(error);
+  }
+};
+
 exports.remove = async (req, res, next) => {
   try {
     await prisma.siteSetting.delete({ where: { key: req.params.key } });

@@ -23,7 +23,7 @@ async function main() {
     update: {},
     create: {
       email: "aaneddles@gmail.com",
-      name: "AA Neddles Admin",
+      name: "AA Needles Admin",
       password: admin2Hashed,
       role: "ADMIN",
     },
@@ -132,23 +132,15 @@ async function main() {
     update: {},
     create: {
       id: "banner-welcome",
-      title: "Welcome to Neddles",
+      title: "Welcome to Needles",
       image: "/uploads/banners/welcome.jpg",
       link: "/collections",
       isActive: true,
     },
   });
 
-  await prisma.testimonial.upsert({
+  await prisma.testimonial.deleteMany({
     where: { id: "testimonial-1" },
-    update: {},
-    create: {
-      id: "testimonial-1",
-      customerName: "Sarah Johnson",
-      comment: "Amazing quality clothing! Love every piece I've ordered.",
-      rating: 5,
-      isActive: true,
-    },
   });
 
   console.log("Seed data created successfully");

@@ -42,10 +42,10 @@ function getResendCooldownRemaining(lastOtpSentAt) {
 async function sendRegistrationOtpEmail(email, name, otp) {
   return sendEmail({
     to: email,
-    subject: "Your AA Neddles Verification Code",
+    subject: "Your AA Needles Verification Code",
     html: buildOtpEmailHtml({
       title: "Verify Your Email",
-      greeting: `Welcome to AA Neddles, ${name}!`,
+      greeting: `Welcome to AA Needles, ${name}!`,
       bodyText: `Thank you for registering. Use the code below to verify your email address. This code expires in <strong>${OTP_EXPIRY_MINUTES} minutes</strong>.`,
       otp,
       footerNote: "If you did not create an account, you can safely ignore this email.",
@@ -59,7 +59,7 @@ async function sendRegistrationOtpEmail(email, name, otp) {
 async function sendPasswordResetOtpEmail(email, name, otp) {
   return sendEmail({
     to: email,
-    subject: "AA Neddles — Password Reset Code",
+    subject: "AA Needles — Password Reset Code",
     html: buildOtpEmailHtml({
       title: "Reset Your Password",
       greeting: `Hello, ${name}!`,
@@ -95,7 +95,7 @@ function buildOtpEmailHtml({ title, greeting, bodyText, otp, footerNote }) {
           <!-- Header -->
           <tr>
             <td style="background:#1A1A1A;padding:28px 40px;text-align:center;">
-              <h1 style="margin:0;color:#C9A96E;font-size:22px;font-weight:300;letter-spacing:3px;text-transform:uppercase;">AA NEDDLES</h1>
+              <h1 style="margin:0;color:#C9A96E;font-size:22px;font-weight:300;letter-spacing:3px;text-transform:uppercase;">AA NEEDLES</h1>
               <p style="margin:4px 0 0;color:#ffffff70;font-size:12px;letter-spacing:1px;">Luxury Fashion &amp; Premium Clothing</p>
             </td>
           </tr>
@@ -115,7 +115,7 @@ function buildOtpEmailHtml({ title, greeting, bodyText, otp, footerNote }) {
 
               <div style="background:#FFF8E7;border-left:3px solid #C9A96E;padding:12px 16px;border-radius:0 4px 4px 0;margin-bottom:20px;">
                 <p style="margin:0;color:#7A6543;font-size:13px;">
-                  🔒 <strong>Security Notice:</strong> Never share this code with anyone. AA Neddles will never ask you for this code.
+                  🔒 <strong>Security Notice:</strong> Never share this code with anyone. AA Needles will never ask you for this code.
                 </p>
               </div>
 
@@ -126,7 +126,7 @@ function buildOtpEmailHtml({ title, greeting, bodyText, otp, footerNote }) {
           <tr>
             <td style="padding:20px 40px 30px;border-top:1px solid #F0EBE3;">
               <p style="margin:0;color:#bbb;font-size:11px;text-align:center;">
-                &copy; ${new Date().getFullYear()} AA Neddles. All rights reserved.<br/>
+                &copy; ${new Date().getFullYear()} AA Needles. All rights reserved.<br/>
                 If you have questions, contact our support team.
               </p>
             </td>

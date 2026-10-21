@@ -4,7 +4,7 @@ const { cloudinary, getCloudinaryFolder } = require("../utils/cloudinary");
 
 const storage = new CloudinaryStorage({
   cloudinary,
-  params: async (req, file) => {
+  params: async (req) => {
     const VALID_TYPES = ["products", "categories", "banners", "testimonials", "blogs", "profile"];
     const uploadType = req.uploadType;
     if (!uploadType || !VALID_TYPES.includes(uploadType)) {
@@ -36,6 +36,23 @@ const storage = new CloudinaryStorage({
   },
 });
 
+const videoStorage = new CloudinaryStorage({
+  cloudinary,
+  params: async (req) => {
+    const uploadType = req.uploadType;
+    if (uploadType !== "testimonials") {
+      throw new Error("Video uploads are only allowed for testimonials");
+    }
+    return {
+      folder: getCloudinaryFolder(uploadType),
+      resource_type: "video",
+      allowed_formats: ["mp4", "webm", "mov", "m4v"],
+      public_id: `testimonials/${Date.now()}-${Math.round(Math.random() * 1e9)}`,
+      timeout: 120000,
+    };
+  },
+});
+
 const fileFilter = (req, file, cb) => {
   const allowedTypes = /jpeg|jpg|png|gif|webp|avif/;
   const extname = allowedTypes.test(file.originalname.toLowerCase().split(".").pop());
@@ -52,10 +69,30 @@ const fileFilter = (req, file, cb) => {
   cb(null, true);
 };
 
+const videoFileFilter = (req, file, cb) => {
+  const allowedTypes = new Set(["video/mp4", "video/webm", "video/quicktime", "video/x-m4v"]);
+  const allowedExtensions = new Set(["mp4", "webm", "mov", "m4v"]);
+  const extension = file.originalname.toLowerCase().split(".").pop();
+
+  if (!allowedTypes.has(file.mimetype) || !allowedExtensions.has(extension)) {
+    const err = new Error("Only MP4, WebM, MOV, and M4V video files are allowed");
+    err.statusCode = 400;
+    return cb(err, false);
+  }
+
+  cb(null, true);
+};
+
 const upload = multer({
   storage,
   fileFilter,
   limits: { fileSize: 10 * 1024 * 1024 },
+});
+
+const videoUpload = multer({
+  storage: videoStorage,
+  fileFilter: videoFileFilter,
+  limits: { fileSize: 100 * 1024 * 1024 },
 });
 
 const isMultipartRequest = (req) => {
@@ -70,6 +107,13 @@ const single = (fieldName) => (req, res, next) => {
   return upload.single(fieldName)(req, res, next);
 };
 
+const singleVideo = (fieldName) => (req, res, next) => {
+  if (!isMultipartRequest(req)) {
+    return next();
+  }
+  return videoUpload.single(fieldName)(req, res, next);
+};
+
 const array = (fieldName, maxCount) => (req, res, next) => {
   if (!isMultipartRequest(req)) {
     return next();
@@ -79,5 +123,6 @@ const array = (fieldName, maxCount) => (req, res, next) => {
 
 module.exports = {
   single,
+  singleVideo,
   array,
 };

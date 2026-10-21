@@ -38,7 +38,7 @@ exports.getAllPayments = async (req, res, next) => {
 
 exports.refundPayment = async (req, res, next) => {
   try {
-    const result = await paymentService.refundPayment(req.params.id, req.body);
+    const result = await paymentService.refundPayment(req.params.id, req.body, req.user);
     res.status(200).json({ success: true, data: result });
   } catch (error) {
     next(error);

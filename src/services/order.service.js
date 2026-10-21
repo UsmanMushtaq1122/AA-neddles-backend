@@ -2,17 +2,20 @@ const prisma = require("../config/db");
 const crypto = require("crypto");
 const pagination = require("../utils/pagination");
 const AppError = require("../utils/AppError");
-const { sendEmail } = require("../utils/email");
+const logger = require("../config/logger");
+const { sendEmailWithRetry } = require("../utils/emailSender");
+const orderEmailService = require("./orderEmail.service");
 
 const VALID_TRANSITIONS = {
   PENDING: ["CONFIRMED", "CANCELLED"],
-  CONFIRMED: ["PROCESSING", "CANCELLED"],
-  PROCESSING: ["QUALITY_CHECK", "CANCELLED"],
-  QUALITY_CHECK: ["SHIPPED", "CANCELLED"],
-  SHIPPED: ["OUT_FOR_DELIVERY"],
-  OUT_FOR_DELIVERY: ["DELIVERED"],
-  DELIVERED: [],
+  CONFIRMED: ["PROCESSING", "SHIPPED", "CANCELLED"],
+  PROCESSING: ["QUALITY_CHECK", "SHIPPED", "CANCELLED"],
+  QUALITY_CHECK: ["SHIPPED", "PROCESSING", "CANCELLED"],
+  SHIPPED: ["OUT_FOR_DELIVERY", "DELIVERED", "RETURNED"],
+  OUT_FOR_DELIVERY: ["DELIVERED", "SHIPPED", "RETURNED"],
+  DELIVERED: ["RETURNED"],
   CANCELLED: [],
+  RETURNED: [],
 };
 
 exports.getAllOrders = async (query) => {
@@ -61,7 +64,7 @@ exports.getOrdersByCustomer = async (customerId, query) => {
 exports.getOrderById = async (id, user) => {
   const order = await prisma.order.findUnique({
     where: { id },
-    include: { items: { include: { product: true } }, customer: true },
+    include: { items: { include: { product: true } }, customer: true, payments: { orderBy: { createdAt: "desc" } } },
   });
   if (!order) throw new AppError("Order not found", 404);
 
@@ -69,7 +72,10 @@ exports.getOrderById = async (id, user) => {
     throw new AppError("Order not found", 404);
   }
 
-  return order;
+  return {
+    ...order,
+    validTransitions: VALID_TRANSITIONS[order.status] || [],
+  };
 };
 
 exports.createOrder = async (orderData, user) => {
@@ -229,67 +235,28 @@ exports.createOrder = async (orderData, user) => {
 
   const { order, payment } = orderAndPayment;
 
-  if (customer.email) {
-    sendEmail({
-      to: customer.email,
-      subject: `Order Confirmation #${order.orderNumber || order.id}`,
-      html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
-          <div style="text-align: center; margin-bottom: 20px;">
-            <h1 style="color: #7A6543; margin: 0;">AA Neddles</h1>
-            <p style="color: #666; font-size: 14px; margin-top: 5px;">Order Confirmation</p>
-          </div>
-          <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;" />
-          <h2 style="color: #1A1A1A;">Thank you for your order, ${customer.name}!</h2>
-          <p style="color: #555; line-height: 1.6;">
-            Your order <strong>#${order.orderNumber || order.id}</strong> has been received and is currently being processed.
-          </p>
-          <p style="color: #555; line-height: 1.6;">
-            <strong>Payment Method:</strong> ${paymentMethod.toUpperCase() === 'COD' ? 'Cash on Delivery' : paymentMethod.toUpperCase()}<br/>
-            <strong>Payment Status:</strong> ${isOnlinePayment ? 'Paid ✅' : 'Pay on Delivery'}
-          </p>
-          
-          <h3 style="color: #1A1A1A; margin-top: 20px;">Order Summary</h3>
-          <table style="width: 100%; border-collapse: collapse; margin-top: 10px;">
-            <thead>
-              <tr style="border-bottom: 2px solid #eee; text-align: left;">
-                <th style="padding: 8px 0; color: #555;">Item</th>
-                <th style="padding: 8px 0; color: #555;">Qty</th>
-                <th style="padding: 8px 0; color: #555; text-align: right;">Price</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${order.items.map(item => `
-                <tr style="border-bottom: 1px solid #eee;">
-                  <td style="padding: 8px 0; color: #333;">${item.product?.name || 'Product'}</td>
-                  <td style="padding: 8px 0; color: #333;">${item.quantity}</td>
-                  <td style="padding: 8px 0; color: #333; text-align: right;">PKR ${item.price * item.quantity}</td>
-                </tr>
-              `).join('')}
-            </tbody>
-          </table>
-          
-          <div style="margin-top: 20px; text-align: right;">
-            <p style="font-size: 16px; font-weight: bold; color: #1A1A1A;">Total Amount: PKR ${order.total}</p>
-          </div>
-          
-          <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;" />
-          <p style="color: #999; font-size: 12px; text-align: center;">
-            If you have any questions regarding your order, please contact customer support.<br/>
-            &copy; ${new Date().getFullYear()} AA Neddles. All rights reserved.
-          </p>
-        </div>
-      `,
-    }).catch((err) => console.error("Order confirmation email failed to send:", err.message));
-  }
+  // Send Order Confirmation Email via central orderEmailService
+  const emailResult = await orderEmailService.sendOrderConfirmation(order);
+  const emailStatus = emailResult.ok ? "sent" : "failed";
 
-  return { ...order, payment };
+  // Record initial lifecycle event in statusHistory
+  await orderEmailService.recordStatusHistory({
+    orderId: order.id,
+    status: "PENDING",
+    from: null,
+    note: "Order placed successfully by customer",
+    notificationResult: emailResult,
+    changedBy: user.customerId || user.id || "CUSTOMER",
+    changedByRole: "CUSTOMER",
+  });
+
+  return { ...order, payment, emailStatus };
 };
 
-exports.updateOrderStatus = async (id, status) => {
+exports.updateOrderStatus = async (id, status, user = {}, payload = {}) => {
   const order = await prisma.order.findUnique({
     where: { id },
-    include: { items: true, payments: { orderBy: { createdAt: "desc" } } },
+    include: { items: { include: { product: true } }, payments: { orderBy: { createdAt: "desc" } }, customer: true },
   });
   if (!order) throw new AppError("Order not found", 404);
 
@@ -302,6 +269,7 @@ exports.updateOrderStatus = async (id, status) => {
     "OUT_FOR_DELIVERY",
     "DELIVERED",
     "CANCELLED",
+    "RETURNED",
   ];
 
   const targetStatus = status ? status.toUpperCase() : "";
@@ -313,11 +281,27 @@ exports.updateOrderStatus = async (id, status) => {
     );
   }
 
+  // Validate state transitions
+  const allowedNext = VALID_TRANSITIONS[order.status] || [];
+  if (order.status !== targetStatus && allowedNext.length > 0 && !allowedNext.includes(targetStatus)) {
+    throw new AppError(
+      `Cannot transition order from "${order.status}" to "${targetStatus}". Allowed next stages: ${allowedNext.join(", ")}`,
+      400
+    );
+  }
+
   if (order.status === targetStatus) {
-    return order;
+    return {
+      ...order,
+      validTransitions: VALID_TRANSITIONS[order.status] || [],
+    };
   }
 
   const updateData = { status: targetStatus };
+
+  if (payload.trackingNumber) updateData.trackingNumber = payload.trackingNumber;
+  if (payload.trackingUrl || payload.url) updateData.trackingUrl = payload.trackingUrl || payload.url;
+  if (payload.notes) updateData.internalNotes = payload.notes;
 
   // If status is updated to DELIVERED, auto-mark paymentStatus as PAID if pending
   if (targetStatus === "DELIVERED" && order.paymentStatus !== "PAID") {
@@ -394,134 +378,84 @@ exports.updateOrderStatus = async (id, status) => {
 
   const updatedOrder = await prisma.order.findUnique({
     where: { id },
-    include: { items: { include: { product: true } }, customer: true },
+    include: { items: { include: { product: true } }, customer: true, payments: { orderBy: { createdAt: "desc" } } },
   });
 
-  // 📧 Send email notification to customer on Status Update
-  if (updatedOrder && updatedOrder.customer && updatedOrder.customer.email) {
-    let emailSubject = "";
-    let emailBody = "";
+  // 📧 Send customer email notification for this status transition
+  const emailResult = await orderEmailService.sendNotificationForStatus(
+    updatedOrder,
+    order.status,
+    targetStatus,
+    payload
+  );
 
-    const orderNum = updatedOrder.orderNumber || updatedOrder.id;
+  // 📝 Record status change event and email delivery outcome in statusHistory
+  const updatedHistory = await orderEmailService.recordStatusHistory({
+    orderId: id,
+    status: targetStatus,
+    from: order.status,
+    note: payload.notes || payload.cancellationReason || null,
+    notificationResult: emailResult,
+    changedBy: user?.id || null,
+    changedByRole: user?.role || "ADMIN",
+  });
 
-    if (targetStatus === "CONFIRMED") {
-      emailSubject = `Your Order #${orderNum} has been Confirmed! 🎉`;
-      emailBody = `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
-          <div style="text-align: center; margin-bottom: 20px;">
-            <h1 style="color: #7A6543; margin: 0;">AA Neddles</h1>
-            <p style="color: #666; font-size: 14px; margin-top: 5px;">Order Confirmation</p>
-          </div>
-          <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;" />
-          <h2 style="color: #1A1A1A;">Order Confirmed!</h2>
-          <p style="color: #555; line-height: 1.6;">Dear ${updatedOrder.customer.name},</p>
-          <p style="color: #555; line-height: 1.6;">
-            Great news! Your order <strong>#${orderNum}</strong> has been officially confirmed by our team and is currently being processed.
-          </p>
-          <div style="margin: 20px 0; padding: 15px; background: #fafafa; border-radius: 6px;">
-            <p style="margin: 5px 0; color: #333;"><strong>Total Amount:</strong> PKR ${updatedOrder.total}</p>
-            <p style="margin: 5px 0; color: #333;"><strong>Payment Method:</strong> ${updatedOrder.paymentMethod}</p>
-            <p style="margin: 5px 0; color: #333;"><strong>Status:</strong> Confirmed</p>
-          </div>
-          <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;" />
-          <p style="color: #999; font-size: 12px; text-align: center;">
-            Thank you for shopping with AA Neddles.<br/>
-            &copy; ${new Date().getFullYear()} AA Neddles. All rights reserved.
-          </p>
-        </div>
-      `;
-    } else if (targetStatus === "SHIPPED") {
-      emailSubject = `Your Order #${orderNum} has been Shipped! 🚚`;
-      emailBody = `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
-          <div style="text-align: center; margin-bottom: 20px;">
-            <h1 style="color: #7A6543; margin: 0;">AA Neddles</h1>
-            <p style="color: #666; font-size: 14px; margin-top: 5px;">Shipping Update</p>
-          </div>
-          <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;" />
-          <h2 style="color: #1A1A1A;">Your Order is on its Way!</h2>
-          <p style="color: #555; line-height: 1.6;">Dear ${updatedOrder.customer.name},</p>
-          <p style="color: #555; line-height: 1.6;">
-            Your order <strong>#${orderNum}</strong> has been shipped and is on its way to you.
-          </p>
-          ${updatedOrder.trackingNumber ? `<p style="color: #555; line-height: 1.6;"><strong>Tracking Number:</strong> ${updatedOrder.trackingNumber}</p>` : ''}
-          <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;" />
-          <p style="color: #999; font-size: 12px; text-align: center;">
-            &copy; ${new Date().getFullYear()} AA Neddles. All rights reserved.
-          </p>
-        </div>
-      `;
-    } else if (targetStatus === "DELIVERED") {
-      emailSubject = `Your Order #${orderNum} has been Delivered! 📦`;
-      emailBody = `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
-          <div style="text-align: center; margin-bottom: 20px;">
-            <h1 style="color: #7A6543; margin: 0;">AA Neddles</h1>
-          </div>
-          <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;" />
-          <h2 style="color: #1A1A1A;">Order Delivered!</h2>
-          <p style="color: #555; line-height: 1.6;">Dear ${updatedOrder.customer.name},</p>
-          <p style="color: #555; line-height: 1.6;">
-            Your order <strong>#${orderNum}</strong> has been successfully delivered. We hope you enjoy your purchase!
-          </p>
-          <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;" />
-          <p style="color: #999; font-size: 12px; text-align: center;">
-            Thank you for choosing AA Neddles.<br/>
-            &copy; ${new Date().getFullYear()} AA Neddles. All rights reserved.
-          </p>
-        </div>
-      `;
-    } else if (targetStatus === "CANCELLED") {
-      emailSubject = `Order #${orderNum} Cancellation Notice`;
-      emailBody = `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
-          <div style="text-align: center; margin-bottom: 20px;">
-            <h1 style="color: #7A6543; margin: 0;">AA Neddles</h1>
-          </div>
-          <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;" />
-          <h2 style="color: #1A1A1A;">Order Cancelled</h2>
-          <p style="color: #555; line-height: 1.6;">Dear ${updatedOrder.customer.name},</p>
-          <p style="color: #555; line-height: 1.6;">
-            Your order <strong>#${orderNum}</strong> has been cancelled. If you have any questions, please reach out to customer support.
-          </p>
-          <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;" />
-          <p style="color: #999; font-size: 12px; text-align: center;">
-            &copy; ${new Date().getFullYear()} AA Neddles. All rights reserved.
-          </p>
-        </div>
-      `;
-    }
-
-    if (emailSubject) {
-      sendEmail({
-        to: updatedOrder.customer.email,
-        subject: emailSubject,
-        html: emailBody,
-      }).catch((err) => console.error("Order status update email failed to send:", err.message));
-    }
-  }
-
-  return updatedOrder;
+  return {
+    ...updatedOrder,
+    statusHistory: updatedHistory || updatedOrder.statusHistory,
+    emailStatus: emailResult.ok ? "sent" : "failed",
+    validTransitions: VALID_TRANSITIONS[targetStatus] || [],
+  };
 };
 
-exports.updateOrderNotes = async (id, internalNotes) => {
+exports.updateOrderNotes = async (id, internalNotes, user = {}) => {
   const order = await prisma.order.findUnique({ where: { id } });
   if (!order) throw new AppError("Order not found", 404);
 
-  return prisma.order.update({
+  const updated = await prisma.order.update({
     where: { id },
     data: { internalNotes },
   });
+
+  await orderEmailService.recordStatusHistory({
+    orderId: id,
+    status: order.status,
+    from: order.status,
+    note: `Notes updated: ${internalNotes ? internalNotes.slice(0, 100) : "cleared"}`,
+    changedBy: user?.id || null,
+    changedByRole: user?.role || "ADMIN",
+  });
+
+  return updated;
 };
 
-exports.updateOrderTracking = async (id, trackingNumber) => {
+exports.updateOrderTracking = async (id, trackingData, user = {}) => {
   const order = await prisma.order.findUnique({ where: { id } });
   if (!order) throw new AppError("Order not found", 404);
 
-  return prisma.order.update({
+  const trackingNumber = typeof trackingData === "object" ? trackingData.trackingNumber : trackingData;
+  const trackingUrl = typeof trackingData === "object" ? (trackingData.trackingUrl || trackingData.url || null) : null;
+  const carrier = typeof trackingData === "object" ? (trackingData.carrier || null) : null;
+
+  const updateData = {};
+  if (trackingNumber !== undefined) updateData.trackingNumber = trackingNumber;
+  if (trackingUrl !== undefined) updateData.trackingUrl = trackingUrl;
+
+  const updated = await prisma.order.update({
     where: { id },
-    data: { trackingNumber },
+    data: updateData,
   });
+
+  await orderEmailService.recordStatusHistory({
+    orderId: id,
+    status: order.status,
+    from: order.status,
+    note: `Tracking updated: ${trackingNumber || "N/A"}${carrier ? ` via ${carrier}` : ""}`,
+    changedBy: user?.id || null,
+    changedByRole: user?.role || "ADMIN",
+  });
+
+  return updated;
 };
 
 exports.trackOrder = async (orderNumber) => {

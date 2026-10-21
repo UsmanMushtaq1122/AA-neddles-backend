@@ -38,7 +38,7 @@ exports.createOrder = async (req, res, next) => {
 
 exports.updateOrderStatus = async (req, res, next) => {
   try {
-    const result = await orderService.updateOrderStatus(req.params.id, req.body.status);
+    const result = await orderService.updateOrderStatus(req.params.id, req.body.status, req.user, req.body);
     res.status(200).json({ success: true, data: result });
   } catch (error) {
     next(error);
@@ -47,7 +47,7 @@ exports.updateOrderStatus = async (req, res, next) => {
 
 exports.updateOrderNotes = async (req, res, next) => {
   try {
-    const result = await orderService.updateOrderNotes(req.params.id, req.body.notes);
+    const result = await orderService.updateOrderNotes(req.params.id, req.body.notes, req.user);
     res.status(200).json({ success: true, data: result });
   } catch (error) {
     next(error);
@@ -56,7 +56,7 @@ exports.updateOrderNotes = async (req, res, next) => {
 
 exports.updateOrderTracking = async (req, res, next) => {
   try {
-    const result = await orderService.updateOrderTracking(req.params.id, req.body.trackingNumber);
+    const result = await orderService.updateOrderTracking(req.params.id, req.body, req.user);
     res.status(200).json({ success: true, data: result });
   } catch (error) {
     next(error);

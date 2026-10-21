@@ -105,7 +105,9 @@ exports.getAllPayments = async (query) => {
   return { payments, total, page: parseInt(page), totalPages: Math.ceil(total / take) };
 };
 
-exports.refundPayment = async (paymentId, { amount, reason }) => {
+const orderEmailService = require("./orderEmail.service");
+
+exports.refundPayment = async (paymentId, { amount, reason }, user = {}) => {
   const payment = await prisma.payment.findUnique({ where: { id: paymentId } });
   if (!payment) throw new AppError("Payment not found", 404);
 
@@ -143,6 +145,31 @@ exports.refundPayment = async (paymentId, { amount, reason }) => {
 
     return p;
   });
+
+  // 📧 Send customer email notification for processed refund
+  const order = await prisma.order.findUnique({
+    where: { id: payment.orderId },
+    include: { items: { include: { product: true } }, customer: true },
+  });
+
+  if (order) {
+    const emailResult = await orderEmailService.sendOrderRefund(order, updatedPayment, {
+      amount: refundAmt,
+      reason,
+      status: newStatus,
+      transactionId: payment.transactionId,
+    });
+
+    await orderEmailService.recordStatusHistory({
+      orderId: order.id,
+      status: order.status,
+      from: order.status,
+      note: `Refund of PKR ${refundAmt} processed (${newStatus}). Reason: ${reason || "N/A"}`,
+      notificationResult: emailResult,
+      changedBy: user?.id || null,
+      changedByRole: user?.role || "ADMIN",
+    });
+  }
 
   return updatedPayment;
 };

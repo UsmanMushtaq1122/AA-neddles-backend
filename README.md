@@ -1,6 +1,6 @@
-# Neddles Backend
+# Needles Backend
 
-Backend API for Neddles e-commerce platform built with Node.js, Express, Prisma, and PostgreSQL.
+Backend API for Needles e-commerce platform built with Node.js, Express, Prisma, and PostgreSQL.
 
 ## Setup
 

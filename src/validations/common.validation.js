@@ -78,17 +78,23 @@ const faqUpdateSchema = Joi.object({
 const testimonialSchema = Joi.object({
   customerName: Joi.string().max(100).required(),
   content: Joi.string().max(2000).required(),
-  rating: Joi.number().integer().min(1).max(5),
+  rating: Joi.number().integer().min(1).max(5).required(),
+  type: Joi.string().valid("gallery", "video", "instagram", "story").default("gallery"),
+  videoUrl: Joi.string().uri().allow("", null),
+  sortOrder: Joi.number().integer().min(0),
   image: Joi.string().uri().allow("", null),
-  isActive: Joi.boolean().default(true),
+  isActive: Joi.alternatives().try(Joi.boolean(), Joi.string().valid("true", "false")).default(true),
 });
 
 const testimonialUpdateSchema = Joi.object({
   customerName: Joi.string().max(100),
   content: Joi.string().max(2000),
   rating: Joi.number().integer().min(1).max(5),
+  type: Joi.string().valid("gallery", "video", "instagram", "story"),
+  videoUrl: Joi.string().uri().allow("", null),
+  sortOrder: Joi.number().integer().min(0),
   image: Joi.string().uri().allow("", null),
-  isActive: Joi.boolean(),
+  isActive: Joi.alternatives().try(Joi.boolean(), Joi.string().valid("true", "false")),
 }).min(1);
 
 const locationSchema = Joi.object({
@@ -184,8 +190,16 @@ const settingsUpdateSchema = Joi.object({
   value: Joi.any().required(),
 });
 
+const settingsBulkUpdateSchema = Joi.object().min(1).unknown(true);
+
 const orderStatusSchema = Joi.object({
   status: Joi.string().valid("PENDING", "CONFIRMED", "PROCESSING", "QUALITY_CHECK", "SHIPPED", "OUT_FOR_DELIVERY", "DELIVERED", "CANCELLED", "RETURNED").required(),
+  notes: Joi.string().max(2000).allow("", null),
+  cancellationReason: Joi.string().max(1000).allow("", null),
+  carrier: Joi.string().max(100).allow("", null),
+  trackingNumber: Joi.string().max(100).allow("", null),
+  trackingUrl: Joi.string().uri().allow("", null),
+  deliveryInstructions: Joi.string().max(1000).allow("", null),
 });
 
 const orderNotesSchema = Joi.object({
@@ -193,9 +207,10 @@ const orderNotesSchema = Joi.object({
 });
 
 const orderTrackingSchema = Joi.object({
-  carrier: Joi.string().max(100).required(),
+  carrier: Joi.string().max(100).allow("", null),
   trackingNumber: Joi.string().max(100).required(),
   url: Joi.string().uri().allow("", null),
+  trackingUrl: Joi.string().uri().allow("", null),
 });
 
 const editorialSchema = Joi.object({
@@ -262,7 +277,7 @@ module.exports = {
   careerSchema, careerUpdateSchema, jobApplicationSchema,
   userSchema, userUpdateSchema,
   customerUpdateSchema,
-  settingsUpdateSchema,
+  settingsUpdateSchema, settingsBulkUpdateSchema,
   orderStatusSchema, orderNotesSchema, orderTrackingSchema,
   editorialSchema, editorialUpdateSchema,
   cmsPageSchema, cmsPageUpdateSchema,

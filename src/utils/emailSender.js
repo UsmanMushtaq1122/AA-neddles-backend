@@ -11,10 +11,21 @@ const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
  * @param {string} opts.to
  * @param {string} opts.subject
  * @param {string} opts.html
+ * @param {string} [opts.text]
+ * @param {string} [opts.from]
+ * @param {string} [opts.replyTo]
  * @param {number} [opts.attempts=env.NEWSLETTER_MAX_ATTEMPTS]
- * @returns {Promise<{ok: boolean, attempts: number, error?: string}>}
+ * @returns {Promise<{ok: boolean, attempts: number, error?: string, messageId?: string}>}
  */
-async function sendEmailWithRetry({ to, subject, html, attempts = env.NEWSLETTER_MAX_ATTEMPTS }) {
+async function sendEmailWithRetry({
+  to,
+  subject,
+  html,
+  text,
+  from,
+  replyTo,
+  attempts = env.NEWSLETTER_MAX_ATTEMPTS,
+}) {
   if (!isSmtpConfigured()) {
     return {
       ok: false,
@@ -23,16 +34,21 @@ async function sendEmailWithRetry({ to, subject, html, attempts = env.NEWSLETTER
     };
   }
 
+  const senderFrom = from || `"${env.NEWSLETTER_FROM_NAME || "AA NEEDLES"}" <${env.EMAIL_FROM}>`;
+  const mailOptions = {
+    from: senderFrom,
+    to,
+    subject,
+    html,
+  };
+  if (text) mailOptions.text = text;
+  if (replyTo) mailOptions.replyTo = replyTo;
+
   let lastError = "";
   for (let attempt = 1; attempt <= attempts; attempt += 1) {
     try {
-      await transporter.sendMail({
-        from: `"${env.NEWSLETTER_FROM_NAME}" <${env.EMAIL_FROM}>`,
-        to,
-        subject,
-        html,
-      });
-      return { ok: true, attempts: attempt };
+      const info = await transporter.sendMail(mailOptions);
+      return { ok: true, attempts: attempt, messageId: info?.messageId };
     } catch (err) {
       lastError = err.message || String(err);
       logger.warn(`[email-sender] attempt ${attempt}/${attempts} failed for ${to}: ${lastError}`);
@@ -45,3 +61,4 @@ async function sendEmailWithRetry({ to, subject, html, attempts = env.NEWSLETTER
 }
 
 module.exports = { sendEmailWithRetry, sleep };
+
