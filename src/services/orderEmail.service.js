@@ -1,7 +1,7 @@
 const prisma = require("../config/db");
 const env = require("../config/env");
 const logger = require("../config/logger");
-const { sendEmailWithRetry } = require("../utils/emailSender");
+const { sendEmailWithRetry, getMailboxAddress } = require("../utils/emailSender");
 const { BRAND } = require("../emails/orderEmails/emailLayout");
 const {
   buildOrderConfirmationEmail,
@@ -89,7 +89,9 @@ function isNotificationAlreadySent(statusHistory = [], targetStatus, windowMinut
   return statusHistory.some((entry) => {
     const entryStatus = String(entry.status || entry.to || "").toUpperCase();
     const isTarget = entryStatus === String(targetStatus).toUpperCase();
-    const sentOk = entry.emailSent === true || entry.notificationStatus === "sent";
+    const sentOk = entry.emailSent === true ||
+      entry.notificationStatus === "accepted" ||
+      entry.notificationStatus === "sent";
     const entryTime = entry.timestamp || entry.at ? new Date(entry.timestamp || entry.at).getTime() : 0;
     return isTarget && sentOk && entryTime > cutoff;
   });
@@ -128,9 +130,9 @@ async function recordStatusHistory({
       changedBy: changedBy || null,
       changedByRole: changedByRole || null,
       emailSent: notificationResult ? notificationResult.ok : null,
-      emailRecipient: notificationResult?.recipient || null,
       notificationStatus: notificationResult?.status || "skipped",
       notificationError: notificationResult?.error || null,
+      providerMessageId: notificationResult?.messageId || null,
     };
 
     const updatedHistory = [...existingHistory, entry];
@@ -166,7 +168,7 @@ async function sendOrderNotification({
   const recipient = resolveRecipientEmail(order, customer);
 
   if (!recipient) {
-    logger.warn(`[OrderEmail] Skipped ${notificationType} email: No valid customer email for order #${orderNumber}`);
+    logger.warn(`[OrderEmail] Skipped ${notificationType} email: No valid recipient for order #${orderNumber}`);
     return {
       ok: false,
       status: "skipped",
@@ -198,8 +200,8 @@ async function sendOrderNotification({
       ...payload,
     });
   } catch (renderError) {
-    logger.error(`[OrderEmail] Failed to render ${notificationType} template for #${orderNumber}: ${renderError.message}`, {
-      stack: renderError.stack,
+    logger.error(`[OrderEmail] Failed to render ${notificationType} template for #${orderNumber}`, {
+      errorCode: renderError.code || "TEMPLATE_RENDER_FAILED",
     });
     return {
       ok: false,
@@ -213,20 +215,26 @@ async function sendOrderNotification({
   try {
     const sendResult = await sendEmailWithRetry({
       to: recipient,
-      from: `"${BRAND.name}" <${env.EMAIL_FROM}>`,
-      replyTo: BRAND.support.email,
+      from: `"${env.EMAIL_FROM_NAME || BRAND.name}" <${getMailboxAddress(env.EMAIL_FROM)}>`,
+      replyTo: env.EMAIL_REPLY_TO || getMailboxAddress(env.EMAIL_FROM),
       subject: emailData.subject,
       html: emailData.html,
       text: emailData.text,
       attempts: 3,
     });
 
-    const status = sendResult.ok ? "sent" : "failed";
+    const status = sendResult.ok ? "accepted" : "failed";
 
     if (sendResult.ok) {
-      logger.info(`[OrderEmail] Sent ${notificationType} email for order #${orderNumber} to ${recipient} (attempts: ${sendResult.attempts})`);
+      logger.info(`[OrderEmail] Provider accepted ${notificationType} email for order #${orderNumber}`, {
+        attempts: sendResult.attempts,
+        messageId: sendResult.messageId || undefined,
+      });
     } else {
-      logger.error(`[OrderEmail] Failed to send ${notificationType} email for order #${orderNumber} to ${recipient}: ${sendResult.error}`);
+      logger.error(`[OrderEmail] Provider did not accept ${notificationType} email for order #${orderNumber}`, {
+        attempts: sendResult.attempts,
+        errorCode: sendResult.error,
+      });
     }
 
     return {
@@ -238,7 +246,9 @@ async function sendOrderNotification({
       error: sendResult.error || null,
     };
   } catch (dispatchError) {
-    logger.error(`[OrderEmail] Unexpected error sending ${notificationType} email for #${orderNumber}: ${dispatchError.message}`);
+    logger.error(`[OrderEmail] Unexpected error sending ${notificationType} email for #${orderNumber}`, {
+      errorCode: dispatchError.code || "EMAIL_DISPATCH_FAILED",
+    });
     return {
       ok: false,
       status: "failed",

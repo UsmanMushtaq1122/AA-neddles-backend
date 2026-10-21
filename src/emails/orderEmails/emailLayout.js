@@ -27,10 +27,10 @@ const BRAND = {
     dangerBg: "#FEE2E2",
   },
   support: {
-    email: "support@aaneddles.com",
+    email: "aaneedlesofficial@gmail.com",
     adminEmail: env.ADMIN_EMAIL || "aaneddles@gmail.com",
-    phone: "+92 306 4314840",
-    whatsapp: "+92 306 4314840",
+    phone: "03076916882",
+    whatsapp: "923076916882",
     hours: "Monday – Saturday: 10:00 AM – 7:00 PM (PKT)",
   },
 };
@@ -363,8 +363,9 @@ function renderSupportBox() {
  */
 function wrapInBaseLayout({ title, preheader = "", contentHtml, baseUrl = env.FRONTEND_URL }) {
   const safeTitle = escapeHtml(title || BRAND.name);
-  const logoUrl = `${baseUrl}/logo.png`;
-  const trackingPageUrl = `${baseUrl}/order-tracking`;
+  const publicBaseUrl = (env.FRONTEND_URL || baseUrl || "https://aaneddles.com").replace(/\/$/, "");
+  const logoUrl = env.EMAIL_LOGO_URL || `${publicBaseUrl}/logo.png`;
+  const trackingPageUrl = `${publicBaseUrl}/order-tracking`;
 
   return `<!DOCTYPE html>
 <html lang="en" xmlns="http://www.w3.org/1999/xhtml" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">
@@ -416,7 +417,7 @@ function wrapInBaseLayout({ title, preheader = "", contentHtml, baseUrl = env.FR
           <!-- Brand Header -->
           <tr>
             <td align="center" style="background-color: #FFFFFF; padding: 32px 24px 24px; border-bottom: 1px solid ${BRAND.colors.border};">
-              <a href="${escapeHtml(baseUrl)}" target="_blank" style="text-decoration: none; display: inline-block;">
+              <a href="${escapeHtml(publicBaseUrl)}" target="_blank" style="text-decoration: none; display: inline-block;">
                 <!-- Brand logo with robust fallback -->
                 <img src="${escapeHtml(logoUrl)}" alt="${BRAND.name}" width="160" style="display: block; width: 160px; max-width: 100%; height: auto; margin: 0 auto;" onerror="this.style.display='none'" />
                 <h1 style="margin: 6px 0 0; font-family: 'Playfair Display', Georgia, serif; font-size: 24px; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase; color: ${BRAND.colors.primaryText};">
@@ -442,11 +443,11 @@ function wrapInBaseLayout({ title, preheader = "", contentHtml, baseUrl = env.FR
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
                 <tr>
                   <td align="center" style="padding-bottom: 14px;">
-                    <a href="${escapeHtml(baseUrl)}" target="_blank" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.12em; color: ${BRAND.colors.primaryText}; text-decoration: none; margin: 0 10px;">Storefront</a>
+                    <a href="${escapeHtml(publicBaseUrl)}" target="_blank" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.12em; color: ${BRAND.colors.primaryText}; text-decoration: none; margin: 0 10px;">Storefront</a>
                     <span style="color: ${BRAND.colors.border};">&bull;</span>
                     <a href="${escapeHtml(trackingPageUrl)}" target="_blank" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.12em; color: ${BRAND.colors.primaryText}; text-decoration: none; margin: 0 10px;">Track Order</a>
                     <span style="color: ${BRAND.colors.border};">&bull;</span>
-                    <a href="${escapeHtml(baseUrl)}/return-exchange-policy" target="_blank" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.12em; color: ${BRAND.colors.primaryText}; text-decoration: none; margin: 0 10px;">Exchange Policy</a>
+                    <a href="${escapeHtml(publicBaseUrl)}/return-exchange-policy" target="_blank" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.12em; color: ${BRAND.colors.primaryText}; text-decoration: none; margin: 0 10px;">Exchange Policy</a>
                   </td>
                 </tr>
                 <tr>

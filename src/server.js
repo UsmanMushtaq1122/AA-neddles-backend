@@ -3,6 +3,7 @@ const app = require("./app");
 const env = require("./config/env");
 const logger = require("./config/logger");
 const prisma = require("./config/db");
+const { verifyTransporter } = require("./utils/email");
 const { initSocket } = require("./socket/socket");
 const { ensureDefaultFaqCategories } = require("./utils/faqCategoryDefaults");
 const { startJobs, stopJobs } = require("./jobs");
@@ -14,6 +15,7 @@ initSocket(server);
 prisma.$connect()
   .then(async () => {
     logger.info("Database connected successfully");
+    await verifyTransporter();
     try {
       await ensureDefaultFaqCategories();
       logger.info("Default FAQ categories ensured");

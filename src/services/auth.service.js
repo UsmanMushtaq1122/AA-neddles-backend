@@ -4,7 +4,6 @@ const crypto = require("crypto");
 const jwt = require("../utils/jwt");
 const AppError = require("../utils/AppError");
 const tokenBlacklist = require("../utils/tokenBlacklist");
-const { sendEmail } = require("../utils/email");
 const { OAuth2Client } = require("google-auth-library");
 const {
   generateOtp,

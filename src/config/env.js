@@ -15,6 +15,10 @@ const env = {
   SMTP_USER: process.env.SMTP_USER,
   SMTP_PASS: process.env.SMTP_PASS,
   EMAIL_FROM: process.env.EMAIL_FROM,
+  EMAIL_FROM_NAME: process.env.EMAIL_FROM_NAME || "AA NEEDLES",
+  EMAIL_REPLY_TO: process.env.EMAIL_REPLY_TO,
+  EMAIL_RETURN_PATH: process.env.EMAIL_RETURN_PATH,
+  EMAIL_LOGO_URL: process.env.EMAIL_LOGO_URL || "https://aaneddles.com/logo.png",
   CLOUDINARY_CLOUD_NAME: process.env.CLOUDINARY_CLOUD_NAME,
   CLOUDINARY_API_KEY: process.env.CLOUDINARY_API_KEY,
   CLOUDINARY_API_SECRET: process.env.CLOUDINARY_API_SECRET,
@@ -58,6 +62,21 @@ if (!env.CLOUDINARY_API_SECRET) {
 const smtpVars = [env.SMTP_HOST, env.SMTP_PORT, env.SMTP_USER, env.SMTP_PASS, env.EMAIL_FROM];
 if (smtpVars.some((v) => !v)) {
   console.warn("WARNING: SMTP environment variables are not fully configured. Email features (password reset, order confirmations) will fail at runtime.");
+}
+const emailAddressPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const extractEmailAddress = (value) => {
+  if (!value) return "";
+  const match = value.match(/<([^<>]+)>/);
+  return (match ? match[1] : value).trim();
+};
+for (const [key, value] of [
+  ["EMAIL_FROM", env.EMAIL_FROM],
+  ["EMAIL_REPLY_TO", env.EMAIL_REPLY_TO],
+  ["EMAIL_RETURN_PATH", env.EMAIL_RETURN_PATH],
+]) {
+  if (value && !emailAddressPattern.test(extractEmailAddress(value))) {
+    console.warn(`WARNING: ${key} must be a valid email address; this email configuration may fail.`);
+  }
 }
 
 module.exports = env;

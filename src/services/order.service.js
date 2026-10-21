@@ -3,7 +3,6 @@ const crypto = require("crypto");
 const pagination = require("../utils/pagination");
 const AppError = require("../utils/AppError");
 const logger = require("../config/logger");
-const { sendEmailWithRetry } = require("../utils/emailSender");
 const orderEmailService = require("./orderEmail.service");
 
 const VALID_TRANSITIONS = {
@@ -237,7 +236,7 @@ exports.createOrder = async (orderData, user) => {
 
   // Send Order Confirmation Email via central orderEmailService
   const emailResult = await orderEmailService.sendOrderConfirmation(order);
-  const emailStatus = emailResult.ok ? "sent" : "failed";
+  const emailStatus = emailResult.ok ? "accepted" : "failed";
 
   // Record initial lifecycle event in statusHistory
   await orderEmailService.recordStatusHistory({
@@ -403,7 +402,7 @@ exports.updateOrderStatus = async (id, status, user = {}, payload = {}) => {
   return {
     ...updatedOrder,
     statusHistory: updatedHistory || updatedOrder.statusHistory,
-    emailStatus: emailResult.ok ? "sent" : "failed",
+    emailStatus: emailResult.ok ? "accepted" : "failed",
     validTransitions: VALID_TRANSITIONS[targetStatus] || [],
   };
 };
