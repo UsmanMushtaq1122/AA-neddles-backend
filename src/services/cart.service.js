@@ -24,10 +24,18 @@ exports.getCart = async (customerId) => {
   return { ...cart, total: parseFloat(total.toFixed(2)) };
 };
 
-exports.addToCart = async (customerId, { productId, quantity }) => {
+exports.addToCart = async (customerId, { productId, quantity, selectedSize = "" }) => {
   return prisma.$transaction(async (tx) => {
     const product = await tx.product.findUnique({ where: { id: productId } });
     if (!product) throw new AppError("Product not found", 404);
+
+    const availableSizes = Array.isArray(product.sizes) ? product.sizes : [];
+    if (availableSizes.length > 1 && !selectedSize) {
+      throw new AppError("Please select a size before adding this product to your cart", 400);
+    }
+    if (selectedSize && availableSizes.length > 0 && !availableSizes.includes(selectedSize)) {
+      throw new AppError("Selected size is not available for this product", 400);
+    }
 
     if (product.stock < quantity) {
       throw new AppError(`Insufficient stock. Available: ${product.stock}`, 400);
@@ -39,7 +47,7 @@ exports.addToCart = async (customerId, { productId, quantity }) => {
     }
 
     const existingItem = await tx.cartItem.findFirst({
-      where: { cartId: cart.id, productId },
+      where: { cartId: cart.id, productId, selectedSize },
     });
 
     if (existingItem) {
@@ -53,7 +61,7 @@ exports.addToCart = async (customerId, { productId, quantity }) => {
       });
     } else {
       await tx.cartItem.create({
-        data: { cartId: cart.id, productId, quantity },
+        data: { cartId: cart.id, productId, quantity, selectedSize },
       });
     }
 

@@ -88,7 +88,7 @@ exports.createOrder = async (orderData, user) => {
     where: { id: { in: productIds }, status: "ACTIVE" },
   });
 
-  if (products.length !== productIds.length) {
+  if (products.length !== new Set(productIds).size) {
     throw new AppError("One or more products not found", 404);
   }
 
@@ -96,6 +96,13 @@ exports.createOrder = async (orderData, user) => {
   let subtotal = 0;
   const orderItems = items.map((item) => {
     const product = products.find((p) => p.id === item.productId);
+    const availableSizes = Array.isArray(product.sizes) ? product.sizes : [];
+    if (availableSizes.length > 1 && !item.selectedSize) {
+      throw new AppError(`Please select a size for "${product.name}"`, 400);
+    }
+    if (item.selectedSize && availableSizes.length > 0 && !availableSizes.includes(item.selectedSize)) {
+      throw new AppError(`Selected size is not available for "${product.name}"`, 400);
+    }
     const itemTotal = parseFloat(product.price) * item.quantity;
     subtotal += itemTotal;
     return {
@@ -103,6 +110,7 @@ exports.createOrder = async (orderData, user) => {
       quantity: item.quantity,
       price: product.price,
       total: parseFloat(itemTotal.toFixed(2)),
+      selectedSize: item.selectedSize || null,
     };
   });
 

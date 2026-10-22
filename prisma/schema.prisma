@@ -125,6 +125,8 @@ model Product {
   isBestSeller    Boolean     @default(false)
   images          Json        @default("[]")
   tags            Json        @default("[]")
+  sizes           Json?
+  careInstructions Json?
   seoTitle        String?
   seoDescription  String?
   categoryId      String
@@ -212,6 +214,7 @@ model OrderItem {
   quantity  Int
   price     Decimal @db.Decimal(10, 2)
   total     Decimal @db.Decimal(10, 2)
+  selectedSize String?
   orderId   String
   order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
   productId String
@@ -321,10 +324,11 @@ model CartItem {
   productId String
   product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
   quantity  Int
+  selectedSize String @default("")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@unique([cartId, productId])
+  @@unique([cartId, productId, selectedSize])
   @@index([productId])
 }
 

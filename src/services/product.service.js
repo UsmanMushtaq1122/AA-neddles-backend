@@ -77,6 +77,9 @@ function orderByKnown(values, known) {
 }
 
 function deriveSizes(products) {
+  const productSizes = [...new Set(products.flatMap((product) => normalizeStringArray(product.sizes)))];
+  if (productSizes.length > 0) return productSizes;
+
   const sizes = orderByKnown(
     collectProductTags(products)
       .map((tag) => KNOWN_SIZES.find((s) => s.toLowerCase() === tag.toLowerCase()))
@@ -154,9 +157,26 @@ function parseJsonField(value) {
   return value;
 }
 
+function normalizeStringArray(value) {
+  const parsed = parseJsonField(value);
+  return Array.isArray(parsed)
+    ? parsed.filter((item) => typeof item === "string" && item.trim()).map((item) => item.trim())
+    : [];
+}
+
+function mapProductAttributes(product) {
+  const sizes = normalizeStringArray(product.sizes);
+  return {
+    ...product,
+    sizes: sizes.length > 0 ? sizes : ["XS", "S", "M", "L", "XL", "Custom"],
+    careInstructions: normalizeStringArray(product.careInstructions),
+  };
+}
+
 const mapProduct = (product) => {
   if (!product) return null;
 
+  const productAttributes = mapProductAttributes(product);
   const title = product.name;
 
   let images = [];
@@ -190,7 +210,6 @@ const mapProduct = (product) => {
     }
   }
 
-  const sizes = product.sizes || ["XS", "S", "M", "L", "XL", "Custom"];
   const fabric = product.fabric || "Cotton & Silk Blend";
 
   let categoryLabel = "Pret";
@@ -204,14 +223,13 @@ const mapProduct = (product) => {
   const displayPrice = salePrice ? productCompareAt : productPrice;
 
   return {
-    ...product,
+    ...productAttributes,
     title,
     price: displayPrice,
     compareAtPrice: productCompareAt,
     salePrice,
     images,
     tags,
-    sizes,
     fabric,
     category: categoryLabel,
   };
@@ -272,6 +290,7 @@ exports.getProductFacets = async (query) => {
         price: true,
         compareAtPrice: true,
         tags: true,
+        sizes: true,
         isNewArrival: true,
         categoryId: true,
       },
@@ -384,6 +403,8 @@ exports.createProduct = async (data, file) => {
     isBestSeller: data.isBestSeller === "true" || data.isBestSeller === true,
     images: parseJsonField(data.images) || images,
     tags: parseJsonField(data.tags) || [],
+    sizes: parseJsonField(data.sizes),
+    careInstructions: parseJsonField(data.careInstructions),
     seoTitle: data.seoTitle,
     seoDescription: data.seoDescription,
     categoryId: data.categoryId,
@@ -391,7 +412,7 @@ exports.createProduct = async (data, file) => {
 
   try {
     const created = await prisma.product.create({ data: allowedData, include: { category: true } });
-    return created;
+    return mapProductAttributes(created);
   } catch (err) {
     if (err.code === "P2002") {
       const targetFields = Array.isArray(err.meta?.target) ? err.meta.target : [];
@@ -454,6 +475,8 @@ exports.updateProduct = async (id, data, file) => {
   if (data.categoryId) updateData.categoryId = data.categoryId;
 
   if (data.tags !== undefined) updateData.tags = parseJsonField(data.tags);
+  if (data.sizes !== undefined) updateData.sizes = parseJsonField(data.sizes);
+  if (data.careInstructions !== undefined) updateData.careInstructions = parseJsonField(data.careInstructions);
   if (data.images !== undefined) {
     updateData.images = parseJsonField(data.images);
   } else if (file) {
@@ -463,7 +486,7 @@ exports.updateProduct = async (id, data, file) => {
 
   try {
     const updated = await prisma.product.update({ where: { id }, data: updateData, include: { category: true } });
-    return updated;
+    return mapProductAttributes(updated);
   } catch (err) {
     if (err.code === "P2002") {
       throw new AppError("This product already exists.", 409);

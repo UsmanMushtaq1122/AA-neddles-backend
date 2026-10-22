@@ -7,6 +7,7 @@ const createOrderSchema = Joi.object({
         productId: Joi.string().required(),
         quantity: Joi.number().integer().positive().required(),
         price: Joi.number().positive().required(),
+        selectedSize: Joi.string().trim().max(100).allow("").optional(),
       })
     )
     .min(1)

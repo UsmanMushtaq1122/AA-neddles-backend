@@ -34,6 +34,28 @@ const categoryIdField = Joi.string().required().messages({
 
 const stringField = Joi.string().allow("", null);
 
+const stringArrayField = (label) => Joi.any()
+  .custom((value, helpers) => {
+    let parsed = value;
+    if (typeof value === "string") {
+      try {
+        parsed = JSON.parse(value);
+      } catch {
+        return helpers.error("any.invalid");
+      }
+    }
+
+    const { error, value: normalized } = Joi.array()
+      .items(Joi.string().trim().min(1).max(100))
+      .max(100)
+      .validate(parsed);
+    if (error) return helpers.error("any.invalid");
+    return normalized;
+  })
+  .messages({
+    "any.invalid": `${label} must be an array of up to 100 non-empty strings.`,
+  });
+
 const createProductSchema = Joi.object({
   name: nameField,
   description: stringField,
@@ -59,6 +81,8 @@ const createProductSchema = Joi.object({
   isBestSeller: Joi.alternatives().try(Joi.boolean(), Joi.string().valid("true", "false")),
   images: Joi.any(),
   tags: Joi.any(),
+  sizes: stringArrayField("Sizes"),
+  careInstructions: stringArrayField("Care instructions"),
   seoTitle: stringField,
   seoDescription: stringField,
 });
@@ -90,6 +114,8 @@ const updateProductSchema = Joi.object({
   isBestSeller: Joi.alternatives().try(Joi.boolean(), Joi.string().valid("true", "false")),
   images: Joi.any(),
   tags: Joi.any(),
+  sizes: stringArrayField("Sizes"),
+  careInstructions: stringArrayField("Care instructions"),
   seoTitle: stringField,
   seoDescription: stringField,
 }).min(1);
