@@ -1,4 +1,4 @@
 -- AlterTable
 ALTER TABLE "Product"
-ADD COLUMN "sizes" JSONB,
-ADD COLUMN "careInstructions" JSONB;
+ADD COLUMN IF NOT EXISTS "sizes" JSONB,
+ADD COLUMN IF NOT EXISTS "careInstructions" JSONB;

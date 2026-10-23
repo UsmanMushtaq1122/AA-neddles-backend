@@ -89,6 +89,12 @@ const upload = multer({
   limits: { fileSize: 10 * 1024 * 1024 },
 });
 
+const bannerUpload = multer({
+  storage: multer.memoryStorage(),
+  fileFilter,
+  limits: { fileSize: 10 * 1024 * 1024, files: 2 },
+});
+
 const videoUpload = multer({
   storage: videoStorage,
   fileFilter: videoFileFilter,
@@ -121,8 +127,27 @@ const array = (fieldName, maxCount) => (req, res, next) => {
   return upload.array(fieldName, maxCount)(req, res, next);
 };
 
+const fields = (fieldConfigs) => (req, res, next) => {
+  if (!isMultipartRequest(req)) {
+    return next();
+  }
+  return upload.fields(fieldConfigs)(req, res, next);
+};
+
+const bannerImages = (req, res, next) => {
+  if (!isMultipartRequest(req)) {
+    return next();
+  }
+  return bannerUpload.fields([
+    { name: "image", maxCount: 1 },
+    { name: "mobileImage", maxCount: 1 },
+  ])(req, res, next);
+};
+
 module.exports = {
   single,
   singleVideo,
   array,
+  fields,
+  bannerImages,
 };

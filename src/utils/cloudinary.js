@@ -1,6 +1,8 @@
 const cloudinary = require("cloudinary").v2;
 const env = require("../config/env");
+const logger = require("../config/logger");
 const AppError = require("./AppError");
+const { Readable } = require("stream");
 
 cloudinary.config({
   cloud_name: env.CLOUDINARY_CLOUD_NAME,
@@ -9,9 +11,16 @@ cloudinary.config({
   secure: true,
 });
 
-const UPLOAD_TIMEOUT = 30000;
+const UPLOAD_TIMEOUT = 60000;
 const MAX_RETRIES = 2;
 const RETRY_DELAY_MS = 500;
+const RETRYABLE_NETWORK_ERRORS = new Set([
+  "ECONNRESET",
+  "ETIMEDOUT",
+  "EAI_AGAIN",
+  "ENOTFOUND",
+  "ECONNREFUSED",
+]);
 
 const FOLDER_MAP = {
   products: "ecommerce/products",
@@ -25,6 +34,83 @@ const getCloudinaryFolder = (uploadType) => {
 };
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+const uploadImageBuffer = async (buffer, uploadType = "banners") => {
+  const folder = getCloudinaryFolder(uploadType);
+  const publicId = `${uploadType}/${Date.now()}-${Math.round(Math.random() * 1e9)}`;
+  let lastError;
+
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      const result = await new Promise((resolve, reject) => {
+        const uploadStream = cloudinary.uploader.upload_stream(
+          {
+            folder,
+            public_id: publicId,
+            overwrite: true,
+            resource_type: "image",
+            allowed_formats: ["jpg", "jpeg", "png", "gif", "webp", "avif"],
+            transformation: [
+              { quality: "auto" },
+              { fetch_format: "auto" },
+              { width: 2000, height: 2000, crop: "limit" },
+            ],
+            timeout: UPLOAD_TIMEOUT,
+          },
+          (error, response) => {
+            if (error) reject(error);
+            else resolve(response);
+          }
+        );
+
+        const source = Readable.from([buffer]);
+        source.on("error", reject);
+        uploadStream.on("error", reject);
+        source.pipe(uploadStream);
+      });
+
+      return {
+        path: result.secure_url,
+        filename: result.public_id,
+        size: result.bytes,
+      };
+    } catch (error) {
+      lastError = error;
+      const statusCode = Number(error.http_code);
+      const retryable =
+        RETRYABLE_NETWORK_ERRORS.has(error.code) ||
+        !statusCode ||
+        statusCode === 408 ||
+        statusCode === 429 ||
+        statusCode >= 500;
+
+      if (!retryable || attempt === MAX_RETRIES) break;
+      await sleep(RETRY_DELAY_MS * Math.pow(2, attempt));
+    }
+  }
+
+  console.error("Cloudinary original upload error:", {
+    message: lastError?.message,
+    http_code: lastError?.http_code,
+    name: lastError?.name,
+  });
+
+  logger.error("Cloudinary banner image upload failed", {
+    uploadType,
+    code: lastError?.code,
+    statusCode: lastError?.http_code,
+    message: lastError?.message,
+    attempts: MAX_RETRIES + 1,
+  });
+
+  const isConfigurationError = [401, 403].includes(Number(lastError?.http_code));
+  throw new AppError(
+    isConfigurationError
+      ? "Cloudinary rejected the upload. Verify the server Cloudinary credentials and try again."
+      : "Cloudinary is temporarily unavailable. The banner was not saved; please try again.",
+    isConfigurationError ? 502 : 503
+  );
+};
 
 const withRetry = async (fn, context) => {
   let lastError;
@@ -106,6 +192,7 @@ const enrichArrayWithOptimizedUrls = (entities) =>
 
 module.exports = {
   cloudinary,
+  uploadImageBuffer,
   deleteFromCloudinary,
   extractPublicIdFromUrl,
   generateOptimizedUrl,

@@ -1,6 +1,17 @@
 const prisma = require("../config/db");
 const AppError = require("../utils/AppError");
-const { extractPublicIdFromUrl, deleteFromCloudinary, enrichArrayWithOptimizedUrls, enrichWithOptimizedUrls } = require("../utils/cloudinary");
+const { uploadImageBuffer, extractPublicIdFromUrl, deleteFromCloudinary, enrichArrayWithOptimizedUrls, enrichWithOptimizedUrls } = require("../utils/cloudinary");
+
+const cleanupUploadedFiles = async (req) => {
+  const uploadedIds = req.uploadedCloudinaryFiles || [];
+  await Promise.all(uploadedIds.map((publicId) => deleteFromCloudinary(publicId).catch(() => {})));
+};
+
+const uploadBannerImage = async (req, file) => {
+  const uploaded = await uploadImageBuffer(file.buffer, "banners");
+  req.uploadedCloudinaryFiles = [...(req.uploadedCloudinaryFiles || []), uploaded.filename];
+  return uploaded;
+};
 
 exports.getAllBanners = async (req, res, next) => {
   try {
@@ -18,8 +29,16 @@ exports.getAllBanners = async (req, res, next) => {
 exports.createBanner = async (req, res, next) => {
   try {
     const { title, subtitle, link, buttonText, type, sortOrder, isActive, bgColor, textColor, imageUrl } = req.body;
-    const image = req.file ? req.file.path : (req.body.image || imageUrl);
-    const imagePublicId = req.file ? req.file.filename : null;
+    const desktopImage = req.files?.image?.[0] || req.file;
+    const mobileImage = req.files?.mobileImage?.[0];
+    const uploadedDesktopImage = desktopImage?.buffer
+      ? await uploadBannerImage(req, desktopImage)
+      : desktopImage;
+    const uploadedMobileImage = mobileImage?.buffer
+      ? await uploadBannerImage(req, mobileImage)
+      : mobileImage;
+    const image = uploadedDesktopImage ? uploadedDesktopImage.path : (req.body.image || imageUrl);
+    const imagePublicId = uploadedDesktopImage ? uploadedDesktopImage.filename : null;
 
     if ((type === "hero" || type === "editorial" || !type) && !image) {
       throw new AppError("Banner image is required", 400);
@@ -31,6 +50,7 @@ exports.createBanner = async (req, res, next) => {
         subtitle: subtitle || null,
         image: image || null,
         imagePublicId: imagePublicId || null,
+        mobileImage: uploadedMobileImage?.path || req.body.mobileImageUrl || null,
         link: link || null,
         buttonText: buttonText || null,
         type: type || "hero",
@@ -42,9 +62,7 @@ exports.createBanner = async (req, res, next) => {
     });
     res.status(201).json({ success: true, data: enrichWithOptimizedUrls(banner) });
   } catch (error) {
-    if (req.file && req.file.filename) {
-      await deleteFromCloudinary(req.file.filename).catch(() => {});
-    }
+    await cleanupUploadedFiles(req);
     next(error);
   }
 };
@@ -67,26 +85,33 @@ exports.updateBanner = async (req, res, next) => {
     if (bgColor !== undefined) data.bgColor = bgColor;
     if (textColor !== undefined) data.textColor = textColor;
 
-    let oldPublicId = null;
-    if (req.file) {
-      data.image = req.file.path;
-      data.imagePublicId = req.file.filename;
-      oldPublicId = banner.imagePublicId || extractPublicIdFromUrl(banner.image);
+    let oldPublicIds = [];
+    const desktopImage = req.files?.image?.[0] || req.file;
+    const mobileImage = req.files?.mobileImage?.[0];
+    if (desktopImage) {
+      data.image = desktopImage.path;
+      data.imagePublicId = desktopImage.filename;
+      oldPublicIds.push(banner.imagePublicId || extractPublicIdFromUrl(banner.image));
     } else if (req.body.image !== undefined || imageUrl !== undefined) {
       data.image = req.body.image || imageUrl;
+    }
+    if (mobileImage) {
+      data.mobileImage = mobileImage.path;
+      oldPublicIds.push(extractPublicIdFromUrl(banner.mobileImage));
+    } else if (req.body.mobileImageUrl !== undefined) {
+      data.mobileImage = req.body.mobileImageUrl || null;
     }
 
     const updated = await prisma.banner.update({ where: { id: req.params.id }, data });
 
-    if (oldPublicId) {
-      await deleteFromCloudinary(oldPublicId);
+    req.uploadedCloudinaryFiles = [];
+    for (const publicId of oldPublicIds.filter(Boolean)) {
+      await deleteFromCloudinary(publicId).catch(() => {});
     }
 
     res.status(200).json({ success: true, data: enrichWithOptimizedUrls(updated) });
   } catch (error) {
-    if (req.file && req.file.filename) {
-      await deleteFromCloudinary(req.file.filename).catch(() => {});
-    }
+    await cleanupUploadedFiles(req);
     next(error);
   }
 };
