@@ -9,7 +9,7 @@ const env = {
   JWT_EXPIRES_IN: process.env.JWT_EXPIRES_IN || "15m",
   JWT_REFRESH_EXPIRES_IN: process.env.JWT_REFRESH_EXPIRES_IN || "30d",
   FRONTEND_URL: process.env.FRONTEND_URL || (process.env.NODE_ENV === "production" ? "https://aaneedles.com" : "http://localhost:3000"),
-  ADMIN_URL: process.env.ADMIN_URL || (process.env.NODE_ENV === "production" ? "" : "http://localhost:3001"),
+  ADMIN_URL: process.env.ADMIN_URL || (process.env.NODE_ENV === "production" ? "https://aa-needles-admin.vercel.app" : "http://localhost:3001"),
   SMTP_HOST: process.env.SMTP_HOST,
   SMTP_PORT: parseInt(process.env.SMTP_PORT, 10) || 587,
   SMTP_USER: process.env.SMTP_USER,
