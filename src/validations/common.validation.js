@@ -214,7 +214,7 @@ const orderTrackingSchema = Joi.object({
 });
 
 const editorialSchema = Joi.object({
-  title: Joi.string().max(200).required(),
+  title: Joi.string().trim().max(200).required(),
   subtitle: Joi.string().max(300).allow("", null),
   description: Joi.string().max(5000).allow("", null),
   imageUrl: Joi.string().max(500).allow("", null),
@@ -225,7 +225,7 @@ const editorialSchema = Joi.object({
 });
 
 const editorialUpdateSchema = Joi.object({
-  title: Joi.string().max(200),
+  title: Joi.string().trim().max(200),
   subtitle: Joi.string().max(300).allow("", null),
   description: Joi.string().max(5000).allow("", null),
   imageUrl: Joi.string().max(500).allow("", null),
