@@ -14,13 +14,12 @@ const setEditorialUploadType = (req, res, next) => {
 };
 
 const normalizeMultipartTitle = (req, res, next) => {
-  if ((!req.body || !req.body.title) && req.query.title) {
-    req.body = req.body || {};
-    req.body.title = req.query.title;
-  }
-  if (req.body?.title) {
-    req.body.title = String(req.body.title).trim();
-  }
+  const bodyTitle = req.body && req.body.title;
+  const queryTitle = req.query && req.query.title;
+  const headerTitle = req.get("X-Editorial-Title");
+  const title = bodyTitle || queryTitle || headerTitle;
+
+  req.body = { ...(req.body || {}), title: title ? String(title).trim() : "" };
   next();
 };
 
