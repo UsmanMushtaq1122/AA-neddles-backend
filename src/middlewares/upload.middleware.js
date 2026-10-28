@@ -5,7 +5,7 @@ const { cloudinary, getCloudinaryFolder } = require("../utils/cloudinary");
 const storage = new CloudinaryStorage({
   cloudinary,
   params: async (req) => {
-    const VALID_TYPES = ["products", "categories", "banners", "testimonials", "blogs", "profile"];
+    const VALID_TYPES = ["products", "categories", "banners", "testimonials", "blogs", "editorial", "profile"];
     const uploadType = req.uploadType;
     if (!uploadType || !VALID_TYPES.includes(uploadType)) {
       throw new Error(`Invalid upload type "${uploadType}". Allowed: ${VALID_TYPES.join(", ")}`);

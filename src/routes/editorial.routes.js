@@ -5,11 +5,18 @@ const adminMiddleware = require("../middlewares/admin.middleware");
 const controller = require("../controllers/editorial.controller");
 const validate = require("../middlewares/validation.middleware");
 const { editorialSchema, editorialUpdateSchema } = require("../validations/common.validation");
+const uploadMiddleware = require("../middlewares/upload.middleware");
+const { uploadLimiter } = require("../middlewares/rateLimit.middleware");
+
+const setEditorialUploadType = (req, res, next) => {
+  req.uploadType = "editorial";
+  next();
+};
 
 router.get("/", controller.getAll);
 router.get("/:id", controller.getById);
-router.post("/", authMiddleware, adminMiddleware, validate(editorialSchema), controller.create);
-router.put("/:id", authMiddleware, adminMiddleware, validate(editorialUpdateSchema), controller.update);
+router.post("/", authMiddleware, adminMiddleware, uploadLimiter, setEditorialUploadType, uploadMiddleware.single("image"), validate(editorialSchema), controller.create);
+router.put("/:id", authMiddleware, adminMiddleware, uploadLimiter, setEditorialUploadType, uploadMiddleware.single("image"), validate(editorialUpdateSchema), controller.update);
 router.patch("/:id", authMiddleware, adminMiddleware, validate(editorialUpdateSchema), controller.patchStatus);
 router.delete("/:id", authMiddleware, adminMiddleware, controller.remove);
 

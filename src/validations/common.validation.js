@@ -107,7 +107,7 @@ const locationSchema = Joi.object({
   hours: Joi.string().max(500).allow("", null),
   lat: Joi.number().allow(null),
   lng: Joi.number().allow(null),
-  isActive: Joi.boolean().default(true),
+  isActive: Joi.alternatives().try(Joi.boolean(), Joi.string().valid("true", "false")).default(true),
 });
 
 const locationUpdateSchema = Joi.object({
@@ -120,7 +120,7 @@ const locationUpdateSchema = Joi.object({
   hours: Joi.string().max(500).allow("", null),
   lat: Joi.number().allow(null),
   lng: Joi.number().allow(null),
-  isActive: Joi.boolean(),
+  isActive: Joi.alternatives().try(Joi.boolean(), Joi.string().valid("true", "false")),
 }).min(1);
 
 const careerSchema = Joi.object({
@@ -220,7 +220,7 @@ const editorialSchema = Joi.object({
   imageUrl: Joi.string().max(500).allow("", null),
   link: Joi.string().max(500).allow("", null),
   category: Joi.string().max(100).allow("", null),
-  isActive: Joi.boolean().default(true),
+  isActive: Joi.alternatives().try(Joi.boolean(), Joi.string().valid("true", "false")).default(true),
   sortOrder: Joi.number().integer().min(0),
 });
 
@@ -231,7 +231,7 @@ const editorialUpdateSchema = Joi.object({
   imageUrl: Joi.string().max(500).allow("", null),
   link: Joi.string().max(500).allow("", null),
   category: Joi.string().max(100).allow("", null),
-  isActive: Joi.boolean(),
+  isActive: Joi.alternatives().try(Joi.boolean(), Joi.string().valid("true", "false")),
   sortOrder: Joi.number().integer().min(0),
 }).min(1);
 
