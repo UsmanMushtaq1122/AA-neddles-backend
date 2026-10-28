@@ -19,6 +19,16 @@ const errorMiddleware = (err, req, res, next) => {
     message = "This product already exists.";
   }
 
+  if (err.code === "P2021") {
+    statusCode = 503;
+    message = "Editorial storage is not initialized. Run the production database migrations.";
+  }
+
+  if (err.code === "P2025") {
+    statusCode = 404;
+    message = "Editorial item not found.";
+  }
+
   if (statusCode === 500) {
     message = "Something went wrong. Please try again.";
   }

@@ -9,14 +9,14 @@ const parseBoolean = (value, fallback) => {
 
 exports.getAll = async (req, res, next) => {
   try {
-    const items = await prisma.eDITORIALCONTENT.findMany({ orderBy: { sortOrder: "asc" } });
+    const items = await prisma.editorialContent.findMany({ orderBy: { sortOrder: "asc" } });
     res.json({ success: true, data: items.map(mapItem) });
   } catch (error) { next(error); }
 };
 
 exports.getById = async (req, res, next) => {
   try {
-    const item = await prisma.eDITORIALCONTENT.findUnique({ where: { id: req.params.id } });
+    const item = await prisma.editorialContent.findUnique({ where: { id: req.params.id } });
     if (!item) throw new AppError("Editorial not found", 404);
     res.json({ success: true, data: mapItem(item) });
   } catch (error) { next(error); }
@@ -25,7 +25,7 @@ exports.getById = async (req, res, next) => {
 exports.create = async (req, res, next) => {
   try {
     const { title, subtitle, description, imageUrl, link, category, isActive, sortOrder } = req.body;
-    const item = await prisma.eDITORIALCONTENT.create({
+    const item = await prisma.editorialContent.create({
       data: {
         title,
         subtitle: subtitle || null,
@@ -54,7 +54,7 @@ exports.update = async (req, res, next) => {
     if (category !== undefined) data.category = category;
     if (isActive !== undefined) data.isActive = parseBoolean(isActive, false);
     if (sortOrder !== undefined) data.sortOrder = parseInt(sortOrder);
-    const item = await prisma.eDITORIALCONTENT.update({ where: { id: req.params.id }, data });
+    const item = await prisma.editorialContent.update({ where: { id: req.params.id }, data });
     res.json({ success: true, data: mapItem(item) });
   } catch (error) { next(error); }
 };
@@ -64,14 +64,14 @@ exports.patchStatus = async (req, res, next) => {
     const { isActive } = req.body;
     const data = {};
     if (isActive !== undefined) data.isActive = parseBoolean(isActive, false);
-    const item = await prisma.eDITORIALCONTENT.update({ where: { id: req.params.id }, data });
+    const item = await prisma.editorialContent.update({ where: { id: req.params.id }, data });
     res.json({ success: true, data: mapItem(item) });
   } catch (error) { next(error); }
 };
 
 exports.remove = async (req, res, next) => {
   try {
-    await prisma.eDITORIALCONTENT.delete({ where: { id: req.params.id } });
+    await prisma.editorialContent.delete({ where: { id: req.params.id } });
     res.json({ success: true, data: { message: "Editorial deleted" } });
   } catch (error) { next(error); }
 };
