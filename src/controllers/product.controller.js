@@ -80,3 +80,12 @@ exports.deleteProduct = async (req, res, next) => {
     next(error);
   }
 };
+
+exports.bulkDeleteProducts = async (req, res, next) => {
+  try {
+    const result = await productService.bulkDeleteProducts(req.body.ids);
+    res.status(200).json({ success: true, data: result });
+  } catch (error) {
+    next(error);
+  }
+};

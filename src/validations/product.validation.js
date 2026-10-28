@@ -127,4 +127,18 @@ const checkDuplicatesSchema = Joi.object({
   excludeId: Joi.string().trim().allow("", null),
 });
 
-module.exports = { createProductSchema, updateProductSchema, checkDuplicatesSchema };
+const bulkDeleteProductsSchema = Joi.object({
+  ids: Joi.array().items(Joi.string().trim().min(1).max(100)).min(1).max(100).required().messages({
+    "array.base": "Product IDs must be provided as an array.",
+    "array.min": "Select at least one product to delete.",
+    "array.max": "You can delete at most 100 products at a time.",
+    "any.required": "Product IDs are required.",
+  }),
+});
+
+module.exports = {
+  createProductSchema,
+  updateProductSchema,
+  checkDuplicatesSchema,
+  bulkDeleteProductsSchema,
+};

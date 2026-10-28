@@ -6,7 +6,12 @@ const adminMiddleware = require("../middlewares/admin.middleware");
 const uploadMiddleware = require("../middlewares/upload.middleware");
 const validate = require("../middlewares/validation.middleware");
 const { uploadLimiter } = require("../middlewares/rateLimit.middleware");
-const { createProductSchema, updateProductSchema, checkDuplicatesSchema } = require("../validations/product.validation");
+const {
+  createProductSchema,
+  updateProductSchema,
+  checkDuplicatesSchema,
+  bulkDeleteProductsSchema,
+} = require("../validations/product.validation");
 
 router.get("/", productController.getAllProducts);
 router.get("/facets", productController.getProductFacets);
@@ -57,6 +62,13 @@ router.post(
   },
   uploadMiddleware.array("images", 5),
   productController.bulkUploadImages
+);
+router.post(
+  "/bulk-delete",
+  authMiddleware,
+  adminMiddleware,
+  validate(bulkDeleteProductsSchema),
+  productController.bulkDeleteProducts
 );
 router.delete("/:id", authMiddleware, adminMiddleware, productController.deleteProduct);
 

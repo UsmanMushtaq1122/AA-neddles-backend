@@ -515,3 +515,36 @@ exports.deleteProduct = async (id) => {
   await prisma.product.delete({ where: { id } });
   return { message: "Product deleted successfully" };
 };
+
+exports.bulkDeleteProducts = async (ids) => {
+  const uniqueIds = [...new Set(ids)];
+  const products = await prisma.product.findMany({
+    where: { id: { in: uniqueIds } },
+    select: { id: true },
+  });
+  const existingIds = new Set(products.map((product) => product.id));
+  const orderItems = await prisma.orderItem.findMany({
+    where: { productId: { in: uniqueIds } },
+    select: { productId: true },
+    distinct: ["productId"],
+  });
+  const productIdsWithOrders = new Set(orderItems.map((item) => item.productId));
+  const deletableIds = products
+    .map((product) => product.id)
+    .filter((id) => !productIdsWithOrders.has(id));
+
+  if (deletableIds.length > 0) {
+    await prisma.product.deleteMany({ where: { id: { in: deletableIds } } });
+  }
+
+  const failed = uniqueIds
+    .filter((id) => !existingIds.has(id) || productIdsWithOrders.has(id))
+    .map((id) => ({
+      id,
+      reason: !existingIds.has(id)
+        ? "Product not found"
+        : "Cannot delete product with existing orders",
+    }));
+
+  return { deleted: deletableIds.length, failed };
+};
