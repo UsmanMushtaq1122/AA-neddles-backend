@@ -1,7 +1,17 @@
 const prisma = require("../config/db");
 const AppError = require("../utils/AppError");
 
-const mapItem = (i) => ({ ...i, active: i.isActive, order: i.sortOrder, date: i.date ? i.date.toISOString().split("T")[0] : null, isActive: undefined, sortOrder: undefined });
+const mapItem = (i) => ({
+  ...i,
+  active: i.isActive,
+  isActive: i.isActive,
+  order: i.sortOrder,
+  sortOrder: i.sortOrder,
+  image: i.imageUrl,
+  imageUrl: i.imageUrl,
+  date: i.date ? i.date.toISOString().split("T")[0] : null,
+});
+
 const parseBoolean = (value, fallback) => {
   if (value === undefined) return fallback;
   return value === true || value === "true";
@@ -9,7 +19,8 @@ const parseBoolean = (value, fallback) => {
 
 exports.getAll = async (req, res, next) => {
   try {
-    const items = await prisma.editorialContent.findMany({ orderBy: { sortOrder: "asc" } });
+    const where = req.query.all === "true" ? {} : { isActive: true };
+    const items = await prisma.editorialContent.findMany({ where, orderBy: { sortOrder: "asc" } });
     res.json({ success: true, data: items.map(mapItem) });
   } catch (error) { next(error); }
 };
