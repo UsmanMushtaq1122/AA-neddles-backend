@@ -1,6 +1,15 @@
 const prisma = require("../config/db");
 const AppError = require("../utils/AppError");
-const { extractPublicIdFromUrl, deleteFromCloudinary, enrichArrayWithOptimizedUrls, enrichWithOptimizedUrls } = require("../utils/cloudinary");
+const { extractPublicIdFromUrl, getPlayableVideoUrl, deleteFromCloudinary, enrichArrayWithOptimizedUrls, enrichWithOptimizedUrls } = require("../utils/cloudinary");
+
+const enrichTestimonials = (testimonials) => enrichArrayWithOptimizedUrls(testimonials).map((testimonial) => ({
+  ...testimonial,
+  videoUrl: testimonial.videoUrl ? getPlayableVideoUrl(testimonial.videoUrl) : testimonial.videoUrl,
+}));
+const enrichTestimonial = (testimonial) => ({
+  ...enrichWithOptimizedUrls(testimonial),
+  videoUrl: testimonial.videoUrl ? getPlayableVideoUrl(testimonial.videoUrl) : testimonial.videoUrl,
+});
 
 exports.getAllTestimonials = async (req, res, next) => {
   try {
@@ -8,7 +17,7 @@ exports.getAllTestimonials = async (req, res, next) => {
       where: { isActive: true },
       orderBy: [{ sortOrder: "asc" }, { createdAt: "desc" }],
     });
-    res.status(200).json({ success: true, data: enrichArrayWithOptimizedUrls(testimonials) });
+    res.status(200).json({ success: true, data: enrichTestimonials(testimonials) });
   } catch (error) {
     next(error);
   }
@@ -19,7 +28,7 @@ exports.getAllTestimonialsForAdmin = async (req, res, next) => {
     const testimonials = await prisma.testimonial.findMany({
       orderBy: [{ sortOrder: "asc" }, { createdAt: "desc" }],
     });
-    res.status(200).json({ success: true, data: enrichArrayWithOptimizedUrls(testimonials) });
+    res.status(200).json({ success: true, data: enrichTestimonials(testimonials) });
   } catch (error) {
     next(error);
   }
@@ -46,7 +55,7 @@ exports.createTestimonial = async (req, res, next) => {
         sortOrder: sortOrder !== undefined ? parseInt(sortOrder, 10) : (maxOrder._max.sortOrder ?? -1) + 1,
       },
     });
-    res.status(201).json({ success: true, data: enrichWithOptimizedUrls(testimonial) });
+    res.status(201).json({ success: true, data: enrichTestimonial(testimonial) });
   } catch (error) {
     if (req.file && req.file.filename) {
       await deleteFromCloudinary(req.file.filename, req.file.fieldname === "video" ? "video" : "image").catch(() => {});
@@ -106,7 +115,7 @@ exports.updateTestimonial = async (req, res, next) => {
       await deleteFromCloudinary(asset.publicId, asset.resourceType);
     }
 
-    res.status(200).json({ success: true, data: enrichWithOptimizedUrls(updated) });
+    res.status(200).json({ success: true, data: enrichTestimonial(updated) });
   } catch (error) {
     if (!updateSaved && req.file && req.file.filename) {
       await deleteFromCloudinary(req.file.filename, req.file.fieldname === "video" ? "video" : "image").catch(() => {});

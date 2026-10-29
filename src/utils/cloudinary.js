@@ -169,6 +169,18 @@ const generateOptimizedUrl = (publicId, options = {}) => {
   });
 };
 
+const getPlayableVideoUrl = (url) => {
+  const publicId = extractPublicIdFromUrl(url);
+  if (!publicId) return url;
+
+  return cloudinary.url(publicId, {
+    secure: true,
+    resource_type: "video",
+    format: "mp4",
+    transformation: [{ quality: "auto" }],
+  });
+};
+
 const generateResponsiveUrls = (publicId, breakpoints = [320, 640, 960, 1280, 1920]) => {
   if (!publicId) return {};
 
@@ -195,6 +207,7 @@ module.exports = {
   uploadImageBuffer,
   deleteFromCloudinary,
   extractPublicIdFromUrl,
+  getPlayableVideoUrl,
   generateOptimizedUrl,
   generateResponsiveUrls,
   getCloudinaryFolder,
