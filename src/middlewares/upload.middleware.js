@@ -73,8 +73,9 @@ const videoFileFilter = (req, file, cb) => {
   const allowedTypes = new Set(["video/mp4", "video/webm", "video/quicktime", "video/x-m4v"]);
   const allowedExtensions = new Set(["mp4", "webm", "mov", "m4v"]);
   const extension = file.originalname.toLowerCase().split(".").pop();
+  const mimeType = file.mimetype.toLowerCase().split(";")[0].trim();
 
-  if (!allowedTypes.has(file.mimetype) || !allowedExtensions.has(extension)) {
+  if (!allowedTypes.has(mimeType) || !allowedExtensions.has(extension)) {
     const err = new Error("Only MP4, WebM, MOV, and M4V video files are allowed");
     err.statusCode = 400;
     return cb(err, false);
