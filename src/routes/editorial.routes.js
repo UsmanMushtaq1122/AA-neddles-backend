@@ -25,23 +25,16 @@ const setEditorialUploadType = (req, res, next) => {
 const normalizeMultipartFields = (req, res, next) => {
   const merged = Object.assign({}, req.body || {});
 
-  // Promote query-string fields that are missing or empty in the body
-  if (req.query) {
-    Object.keys(req.query).forEach((key) => {
-      if (merged[key] === undefined || merged[key] === "") {
-        merged[key] = req.query[key];
-      }
-    });
-  }
-
-  // Header fallback specifically for title
+  const queryFields = req.query || {};
+  Object.keys(queryFields).forEach((key) => {
+    if (merged[key] === undefined || merged[key] === "") merged[key] = queryFields[key];
+  });
   const headerTitle = req.get("X-Editorial-Title");
   if ((!merged.title || merged.title === "") && headerTitle) {
     merged.title = headerTitle;
   }
 
-  // Trim the title if present
-  if (merged.title) merged.title = String(merged.title).trim();
+  if (merged.title !== undefined) merged.title = String(merged.title).trim();
 
   req.body = merged;
   next();
