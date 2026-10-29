@@ -1,10 +1,6 @@
 const prisma = require("../config/db");
 const AppError = require("../utils/AppError");
-const { extractPublicIdFromUrl, deleteFromCloudinary, createVideoUploadSignature, enrichArrayWithOptimizedUrls, enrichWithOptimizedUrls } = require("../utils/cloudinary");
-
-exports.getVideoUploadSignature = (req, res) => {
-  res.status(200).json({ success: true, data: createVideoUploadSignature() });
-};
+const { extractPublicIdFromUrl, deleteFromCloudinary, enrichArrayWithOptimizedUrls, enrichWithOptimizedUrls } = require("../utils/cloudinary");
 
 exports.getAllTestimonials = async (req, res, next) => {
   try {

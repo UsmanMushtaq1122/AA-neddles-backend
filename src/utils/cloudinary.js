@@ -33,20 +33,6 @@ const getCloudinaryFolder = (uploadType) => {
   return FOLDER_MAP[uploadType] || "ecommerce/products";
 };
 
-const createVideoUploadSignature = () => {
-  const timestamp = Math.floor(Date.now() / 1000);
-  const folder = getCloudinaryFolder("testimonials");
-  const publicId = `video-${timestamp}-${Math.round(Math.random() * 1e9)}`;
-  const params = { folder, public_id: publicId, timestamp };
-
-  return {
-    ...params,
-    signature: cloudinary.utils.api_sign_request(params, env.CLOUDINARY_API_SECRET),
-    apiKey: env.CLOUDINARY_API_KEY,
-    cloudName: env.CLOUDINARY_CLOUD_NAME,
-  };
-};
-
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const uploadImageBuffer = async (buffer, uploadType = "banners") => {
@@ -208,7 +194,6 @@ module.exports = {
   cloudinary,
   uploadImageBuffer,
   deleteFromCloudinary,
-  createVideoUploadSignature,
   extractPublicIdFromUrl,
   generateOptimizedUrl,
   generateResponsiveUrls,
