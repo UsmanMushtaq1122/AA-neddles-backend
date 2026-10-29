@@ -10,7 +10,7 @@ const errorMiddleware = (err, req, res, next) => {
     statusCode = 400;
     message =
       err.code === "LIMIT_FILE_SIZE"
-        ? "File too large. Maximum file size is 10MB."
+        ? "File too large. Maximum upload size is 10MB."
         : `Upload failed: ${err.message}`;
   }
 

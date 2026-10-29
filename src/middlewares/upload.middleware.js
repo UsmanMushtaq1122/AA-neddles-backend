@@ -98,7 +98,7 @@ const bannerUpload = multer({
 const videoUpload = multer({
   storage: videoStorage,
   fileFilter: videoFileFilter,
-  limits: { fileSize: 100 * 1024 * 1024 },
+  limits: { fileSize: 10 * 1024 * 1024 },
 });
 
 const isMultipartRequest = (req) => {
