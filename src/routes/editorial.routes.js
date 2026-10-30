@@ -29,10 +29,12 @@ const normalizeMultipartFields = (req, res, next) => {
   Object.keys(queryFields).forEach((key) => {
     if (merged[key] === undefined || merged[key] === "") merged[key] = queryFields[key];
   });
-  const headerTitle = req.get("X-Editorial-Title");
-  if ((!merged.title || merged.title === "") && headerTitle) {
-    merged.title = headerTitle;
-  }
+  const headerFields = {
+    title: req.get("X-Editorial-Title"),
+  };
+  Object.entries(headerFields).forEach(([key, value]) => {
+    if ((merged[key] === undefined || merged[key] === "") && value) merged[key] = value;
+  });
 
   if (merged.title !== undefined) merged.title = String(merged.title).trim();
 
