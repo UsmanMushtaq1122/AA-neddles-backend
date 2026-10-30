@@ -19,6 +19,7 @@ const parseBoolean = (value, fallback) => {
 
 exports.getAll = async (req, res, next) => {
   try {
+    res.set("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
     const where = req.query.all === "true" ? {} : { isActive: true };
     const items = await prisma.editorialContent.findMany({ where, orderBy: { sortOrder: "asc" } });
     res.json({ success: true, data: items.map(mapItem) });
