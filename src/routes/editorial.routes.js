@@ -14,27 +14,10 @@ const setEditorialUploadType = (req, res, next) => {
 };
 
 /**
- * Normalizes multipart form fields after Multer runs.
- *
- * multer-storage-cloudinary@4 streams files directly to Cloudinary and can
- * leave req.body empty or incomplete when the upload finishes. To work around
- * this, the frontend also sends critical fields (e.g. title) as query-string
- * parameters. This middleware merges query params into req.body as a fallback
- * so that validation always sees the correct values.
+ * Normalizes multipart fields after Multer has parsed the request.
  */
 const normalizeMultipartFields = (req, res, next) => {
   const merged = Object.assign({}, req.body || {});
-
-  const queryFields = req.query || {};
-  Object.keys(queryFields).forEach((key) => {
-    if (merged[key] === undefined || merged[key] === "") merged[key] = queryFields[key];
-  });
-  const headerFields = {
-    title: req.get("X-Editorial-Title"),
-  };
-  Object.entries(headerFields).forEach(([key, value]) => {
-    if ((merged[key] === undefined || merged[key] === "") && value) merged[key] = value;
-  });
 
   if (merged.title !== undefined) merged.title = String(merged.title).trim();
 
@@ -42,10 +25,17 @@ const normalizeMultipartFields = (req, res, next) => {
   next();
 };
 
+const logEditorialMultipart = (req, res, next) => {
+  console.log("CONTENT TYPE:", req.headers["content-type"]);
+  console.log("EDITORIAL BODY:", req.body);
+  console.log("EDITORIAL FILE:", req.file);
+  next();
+};
+
 router.get("/", controller.getAll);
 router.get("/:id", controller.getById);
-router.post("/", authMiddleware, adminMiddleware, uploadLimiter, setEditorialUploadType, uploadMiddleware.single("image"), normalizeMultipartFields, validate(editorialSchema), controller.create);
-router.put("/:id", authMiddleware, adminMiddleware, uploadLimiter, setEditorialUploadType, uploadMiddleware.single("image"), normalizeMultipartFields, validate(editorialUpdateSchema), controller.update);
+router.post("/", authMiddleware, adminMiddleware, uploadLimiter, setEditorialUploadType, uploadMiddleware.editorialSingle("image"), normalizeMultipartFields, logEditorialMultipart, validate(editorialSchema), controller.create);
+router.put("/:id", authMiddleware, adminMiddleware, uploadLimiter, setEditorialUploadType, uploadMiddleware.editorialSingle("image"), normalizeMultipartFields, logEditorialMultipart, validate(editorialUpdateSchema), controller.update);
 router.patch("/:id", authMiddleware, adminMiddleware, validate(editorialUpdateSchema), controller.patchStatus);
 router.delete("/:id", authMiddleware, adminMiddleware, controller.remove);
 

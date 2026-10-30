@@ -1,5 +1,6 @@
 const prisma = require("../config/db");
 const AppError = require("../utils/AppError");
+const { uploadImageBuffer, deleteFromCloudinary } = require("../utils/cloudinary");
 
 const mapItem = (i) => ({
   ...i,
@@ -35,14 +36,18 @@ exports.getById = async (req, res, next) => {
 };
 
 exports.create = async (req, res, next) => {
+  let uploadedImage;
   try {
     const { title, subtitle, description, imageUrl, link, category, isActive, sortOrder } = req.body;
+    if (req.file) {
+      uploadedImage = await uploadImageBuffer(req.file.buffer, "editorial");
+    }
     const item = await prisma.editorialContent.create({
       data: {
         title,
         subtitle: subtitle || null,
         description: description || null,
-        imageUrl: req.file?.path || imageUrl || null,
+        imageUrl: uploadedImage?.path || imageUrl || null,
         link: link || null,
         category: category || null,
         isActive: parseBoolean(isActive, true),
@@ -50,17 +55,26 @@ exports.create = async (req, res, next) => {
       },
     });
     res.status(201).json({ success: true, data: mapItem(item) });
-  } catch (error) { next(error); }
+  } catch (error) {
+    if (uploadedImage?.filename) {
+      await deleteFromCloudinary(uploadedImage.filename).catch(() => {});
+    }
+    next(error);
+  }
 };
 
 exports.update = async (req, res, next) => {
+  let uploadedImage;
   try {
     const { title, subtitle, description, imageUrl, link, category, isActive, sortOrder } = req.body;
     const data = {};
     if (title !== undefined) data.title = title;
     if (subtitle !== undefined) data.subtitle = subtitle;
     if (description !== undefined) data.description = description;
-    if (req.file) data.imageUrl = req.file.path;
+    if (req.file) {
+      uploadedImage = await uploadImageBuffer(req.file.buffer, "editorial");
+      data.imageUrl = uploadedImage.path;
+    }
     else if (imageUrl !== undefined) data.imageUrl = imageUrl;
     if (link !== undefined) data.link = link;
     if (category !== undefined) data.category = category;
@@ -68,7 +82,12 @@ exports.update = async (req, res, next) => {
     if (sortOrder !== undefined) data.sortOrder = parseInt(sortOrder);
     const item = await prisma.editorialContent.update({ where: { id: req.params.id }, data });
     res.json({ success: true, data: mapItem(item) });
-  } catch (error) { next(error); }
+  } catch (error) {
+    if (uploadedImage?.filename) {
+      await deleteFromCloudinary(uploadedImage.filename).catch(() => {});
+    }
+    next(error);
+  }
 };
 
 exports.patchStatus = async (req, res, next) => {
