@@ -1,4 +1,4 @@
-﻿const Joi = require("joi");
+const Joi = require("joi");
 
 const createSchema = (fields) => Joi.object(fields);
 
@@ -212,3 +212,53 @@ const orderTrackingSchema = Joi.object({
   url: Joi.string().uri().allow("", null),
   trackingUrl: Joi.string().uri().allow("", null),
 });
+
+// Editorial schemas
+const editorialActiveField = () =>
+  Joi.alternatives().try(Joi.boolean(), Joi.string().valid("true", "false"));
+
+const editorialFields = {
+  title: Joi.string().trim().max(200),
+  name: Joi.string().trim().max(200),
+  subtitle: Joi.string().trim().max(300).allow("", null),
+  slug: Joi.string().trim().max(300).allow("", null),
+  description: Joi.string().trim().max(5000).allow("", null),
+  imageUrl: Joi.string().trim().max(1000).allow("", null),
+  image: Joi.string().trim().max(1000).allow("", null),
+  link: Joi.string().trim().max(500).allow("", null),
+  category: Joi.string().trim().max(100).allow("", null),
+  isActive: editorialActiveField(),
+  active: editorialActiveField(),
+  sortOrder: Joi.number().integer().min(0),
+};
+
+const editorialSchema = Joi.object(editorialFields).or("title", "name");
+const editorialUpdateSchema = Joi.object(editorialFields).min(1);
+
+module.exports = {
+  bannerSchema,
+  bannerUpdateSchema,
+  contactSchema,
+  contactUpdateSchema,
+  newsletterSchema,
+  newsletterUpdateSchema,
+  faqSchema,
+  faqUpdateSchema,
+  testimonialSchema,
+  testimonialUpdateSchema,
+  locationSchema,
+  locationUpdateSchema,
+  careerSchema,
+  careerUpdateSchema,
+  jobApplicationSchema,
+  userSchema,
+  userUpdateSchema,
+  customerUpdateSchema,
+  settingsUpdateSchema,
+  settingsBulkUpdateSchema,
+  orderStatusSchema,
+  orderNotesSchema,
+  orderTrackingSchema,
+  editorialSchema,
+  editorialUpdateSchema,
+};

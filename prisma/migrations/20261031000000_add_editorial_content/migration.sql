@@ -1,4 +1,5 @@
-CREATE TABLE IF NOT EXISTS "EditorialContent" (
+-- CreateTable
+CREATE TABLE "EditorialContent" (
     "id" TEXT NOT NULL,
     "title" TEXT NOT NULL,
     "subtitle" TEXT,
@@ -15,7 +16,14 @@ CREATE TABLE IF NOT EXISTS "EditorialContent" (
     CONSTRAINT "EditorialContent_pkey" PRIMARY KEY ("id")
 );
 
-CREATE INDEX IF NOT EXISTS "EditorialContent_isActive_idx" ON "EditorialContent"("isActive");
-CREATE INDEX IF NOT EXISTS "EditorialContent_sortOrder_idx" ON "EditorialContent"("sortOrder");
-CREATE INDEX IF NOT EXISTS "EditorialContent_category_idx" ON "EditorialContent"("category");
-CREATE INDEX IF NOT EXISTS "EditorialContent_isActive_sortOrder_idx" ON "EditorialContent"("isActive", "sortOrder");
+-- CreateIndex
+CREATE INDEX "EditorialContent_isActive_idx" ON "EditorialContent"("isActive");
+
+-- CreateIndex
+CREATE INDEX "EditorialContent_sortOrder_idx" ON "EditorialContent"("sortOrder");
+
+-- CreateIndex
+CREATE INDEX "EditorialContent_category_idx" ON "EditorialContent"("category");
+
+-- CreateIndex
+CREATE INDEX "EditorialContent_isActive_sortOrder_idx" ON "EditorialContent"("isActive", "sortOrder");

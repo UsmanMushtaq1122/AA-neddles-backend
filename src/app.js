@@ -32,6 +32,7 @@ const wishlistRoutes = require("./routes/wishlist.routes");
 const pagesRoutes = require("./routes/pages.routes");
 const userRoutes = require("./routes/user.routes");
 const notificationRoutes = require("./routes/notification.routes");
+const editorialRoutes = require("./routes/editorial.routes");
 
 const app = express();
 
@@ -107,6 +108,7 @@ app.use("/api/v1/wishlist", wishlistRoutes);
 app.use("/api/v1/pages", pagesRoutes);
 app.use("/api/v1/users", userRoutes);
 app.use("/api/v1/notifications", notificationRoutes);
+app.use("/api/v1/editorial", editorialRoutes);
 
 app.use((req, res) => {
   res.status(404).json({ success: false, message: `Route not found: ${req.method} ${req.originalUrl}` });
