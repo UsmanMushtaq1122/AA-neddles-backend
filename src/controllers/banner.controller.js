@@ -40,7 +40,7 @@ exports.createBanner = async (req, res, next) => {
     const image = uploadedDesktopImage ? uploadedDesktopImage.path : (req.body.image || imageUrl);
     const imagePublicId = uploadedDesktopImage ? uploadedDesktopImage.filename : null;
 
-    if ((type === "hero" || type === "editorial" || !type) && !image) {
+    if ((type === "hero" || !type) && !image) {
       throw new AppError("Banner image is required", 400);
     }
 

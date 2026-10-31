@@ -27,7 +27,6 @@ const FOLDER_MAP = {
   categories: "ecommerce/categories",
   banners: "ecommerce/banners",
   testimonials: "ecommerce/testimonials",
-  editorial: "ecommerce/editorial",
 };
 
 const getCloudinaryFolder = (uploadType) => {

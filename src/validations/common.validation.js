@@ -1,4 +1,4 @@
-const Joi = require("joi");
+﻿const Joi = require("joi");
 
 const createSchema = (fields) => Joi.object(fields);
 
@@ -17,7 +17,7 @@ const bannerSchema = Joi.object({
   imageUrl: Joi.string().max(1000).allow("", null),
   link: Joi.string().max(500).allow("", null),
   buttonText: Joi.string().max(100).allow("", null),
-  type: Joi.string().valid("hero", "editorial", "announcement", "promo", "sidebar").default("hero"),
+  type: Joi.string().valid("hero", "announcement", "promo", "sidebar").default("hero"),
   isActive: Joi.alternatives().try(Joi.boolean(), Joi.string().valid("true", "false")).default(true),
   sortOrder: Joi.number().integer().min(0),
   bgColor: Joi.string().max(50).allow("", null),
@@ -32,7 +32,7 @@ const bannerUpdateSchema = Joi.object({
   imageUrl: Joi.string().max(1000).allow("", null),
   link: Joi.string().max(500).allow("", null),
   buttonText: Joi.string().max(100).allow("", null),
-  type: Joi.string().valid("hero", "editorial", "announcement", "promo", "sidebar"),
+  type: Joi.string().valid("hero", "announcement", "promo", "sidebar"),
   isActive: Joi.alternatives().try(Joi.boolean(), Joi.string().valid("true", "false")),
   sortOrder: Joi.number().integer().min(0),
   bgColor: Joi.string().max(50).allow("", null),
@@ -212,73 +212,3 @@ const orderTrackingSchema = Joi.object({
   url: Joi.string().uri().allow("", null),
   trackingUrl: Joi.string().uri().allow("", null),
 });
-
-const editorialSchema = Joi.object({
-  title: Joi.string().trim().max(200).required(),
-  subtitle: Joi.string().max(300).allow("", null),
-  description: Joi.string().max(5000).allow("", null),
-  imageUrl: Joi.string().max(500).allow("", null),
-  link: Joi.string().max(500).allow("", null),
-  category: Joi.string().max(100).allow("", null),
-  isActive: Joi.alternatives().try(Joi.boolean(), Joi.string().valid("true", "false")).default(true),
-  sortOrder: Joi.number().integer().min(0),
-});
-
-const editorialUpdateSchema = Joi.object({
-  title: Joi.string().trim().max(200),
-  subtitle: Joi.string().max(300).allow("", null),
-  description: Joi.string().max(5000).allow("", null),
-  imageUrl: Joi.string().max(500).allow("", null),
-  link: Joi.string().max(500).allow("", null),
-  category: Joi.string().max(100).allow("", null),
-  isActive: Joi.alternatives().try(Joi.boolean(), Joi.string().valid("true", "false")),
-  sortOrder: Joi.number().integer().min(0),
-}).min(1);
-
-const cmsPageSchema = Joi.object({
-  title: Joi.string().max(200).required(),
-  slug: Joi.string().max(200).regex(/^[a-z0-9-]+$/).allow("", null),
-  content: Joi.string().max(50000).allow("", null),
-  published: Joi.boolean().default(false),
-  metaTitle: Joi.string().max(100).allow("", null),
-  metaDescription: Joi.string().max(300).allow("", null),
-});
-
-const cmsPageUpdateSchema = Joi.object({
-  title: Joi.string().max(200),
-  slug: Joi.string().max(200).regex(/^[a-z0-9-]+$/),
-  content: Joi.string().max(50000).allow("", null),
-  published: Joi.boolean(),
-  metaTitle: Joi.string().max(100).allow("", null),
-  metaDescription: Joi.string().max(300).allow("", null),
-}).min(1);
-
-const faqCategorySchema = Joi.object({
-  name: Joi.string().trim().max(100).required(),
-  isActive: Joi.boolean().default(true),
-  sortOrder: Joi.number().integer().min(0),
-});
-
-const faqCategoryUpdateSchema = Joi.object({
-  name: Joi.string().trim().max(100),
-  isActive: Joi.boolean(),
-  sortOrder: Joi.number().integer().min(0),
-}).min(1);
-
-module.exports = {
-  createSchema, updateSchema, stringField, requiredString, booleanField, numberField, positiveNumber,
-  bannerSchema, bannerUpdateSchema,
-  contactSchema, contactUpdateSchema,
-  newsletterSchema, newsletterUpdateSchema,
-  faqSchema, faqUpdateSchema,
-  faqCategorySchema, faqCategoryUpdateSchema,
-  testimonialSchema, testimonialUpdateSchema,
-  locationSchema, locationUpdateSchema,
-  careerSchema, careerUpdateSchema, jobApplicationSchema,
-  userSchema, userUpdateSchema,
-  customerUpdateSchema,
-  settingsUpdateSchema, settingsBulkUpdateSchema,
-  orderStatusSchema, orderNotesSchema, orderTrackingSchema,
-  editorialSchema, editorialUpdateSchema,
-  cmsPageSchema, cmsPageUpdateSchema,
-};

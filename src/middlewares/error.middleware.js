@@ -21,12 +21,12 @@ const errorMiddleware = (err, req, res, next) => {
 
   if (err.code === "P2021") {
     statusCode = 503;
-    message = "Editorial storage is not initialized. Run the production database migrations.";
+    message = "Database service temporarily unavailable.";
   }
 
   if (err.code === "P2025") {
     statusCode = 404;
-    message = "Editorial item not found.";
+    message = "Requested record not found.";
   }
 
   if (statusCode === 500) {

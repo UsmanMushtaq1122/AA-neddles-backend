@@ -551,26 +551,6 @@ model Notification {
   @@index([type, productId, createdAt])
 }
 
-model EditorialContent {
-  id          String   @id @default(cuid())
-  title       String
-  subtitle    String?
-  description String?
-  imageUrl    String?
-  link        String?
-  category    String?
-  isActive    Boolean  @default(true)
-  sortOrder   Int      @default(0)
-  date        DateTime @default(now())
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  @@index([isActive])
-  @@index([sortOrder])
-  @@index([category])
-  @@index([isActive, sortOrder])
-}
-
 model CMSPage {
   id              String   @id @default(cuid())
   title           String
