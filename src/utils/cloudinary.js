@@ -50,11 +50,6 @@ const uploadImageBuffer = async (buffer, uploadType = "banners") => {
             overwrite: true,
             resource_type: "image",
             allowed_formats: ["jpg", "jpeg", "png", "gif", "webp", "avif"],
-            transformation: [
-              { quality: "auto" },
-              { fetch_format: "auto" },
-              { width: 2000, height: 2000, crop: "limit" },
-            ],
             timeout: UPLOAD_TIMEOUT,
           },
           (error, response) => {

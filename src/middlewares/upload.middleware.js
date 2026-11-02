@@ -25,11 +25,6 @@ const storage = new CloudinaryStorage({
       folder,
       resource_type: "image",
       allowed_formats: ["jpg", "jpeg", "png", "gif", "webp", "avif"],
-      transformation: [
-        { quality: "auto" },
-        { fetch_format: "auto" },
-        { width: 2000, height: 2000, crop: "limit" },
-      ],
       public_id: publicId,
       timeout: 30000,
     };
