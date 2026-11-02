@@ -125,6 +125,7 @@ model Product {
   isBestSeller    Boolean     @default(false)
   images          Json        @default("[]")
   tags            Json        @default("[]")
+  descriptionSections Json?
   sizes           Json?
   careInstructions Json?
   seoTitle        String?

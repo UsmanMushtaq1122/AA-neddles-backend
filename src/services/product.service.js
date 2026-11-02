@@ -403,6 +403,7 @@ exports.createProduct = async (data, file) => {
     isBestSeller: data.isBestSeller === "true" || data.isBestSeller === true,
     images: parseJsonField(data.images) || images,
     tags: parseJsonField(data.tags) || [],
+    descriptionSections: parseJsonField(data.descriptionSections),
     sizes: parseJsonField(data.sizes),
     careInstructions: parseJsonField(data.careInstructions),
     seoTitle: data.seoTitle,
@@ -475,6 +476,9 @@ exports.updateProduct = async (id, data, file) => {
   if (data.categoryId) updateData.categoryId = data.categoryId;
 
   if (data.tags !== undefined) updateData.tags = parseJsonField(data.tags);
+  if (data.descriptionSections !== undefined) {
+    updateData.descriptionSections = parseJsonField(data.descriptionSections);
+  }
   if (data.sizes !== undefined) updateData.sizes = parseJsonField(data.sizes);
   if (data.careInstructions !== undefined) updateData.careInstructions = parseJsonField(data.careInstructions);
   if (data.images !== undefined) {
