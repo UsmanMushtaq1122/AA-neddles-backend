@@ -151,7 +151,7 @@ const generateOptimizedUrl = (publicId, options = {}) => {
   if (!publicId) return null;
 
   const transformation = [
-    { quality: options.quality || "auto" },
+    { quality: options.quality || "auto:best" },
   ];
 
   if (options.width) transformation.push({ width: options.width, crop: options.crop || "limit" });
@@ -159,7 +159,7 @@ const generateOptimizedUrl = (publicId, options = {}) => {
 
   return cloudinary.url(publicId, {
     secure: true,
-    format: options.format && options.format !== "auto" ? options.format : "jpg",
+    format: options.format || "auto",
     transformation,
   });
 };
