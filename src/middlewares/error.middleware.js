@@ -3,15 +3,20 @@ const logger = require("../config/logger");
 const env = require("../config/env");
 
 const errorMiddleware = (err, req, res, next) => {
-  let statusCode = err.statusCode || 500;
+  let statusCode = err.statusCode || err.status || 500;
   let message = err.message || "Internal Server Error";
 
   if (err instanceof multer.MulterError) {
-    statusCode = 400;
+    statusCode = err.code === "LIMIT_FILE_SIZE" ? 413 : 400;
     message =
       err.code === "LIMIT_FILE_SIZE"
-        ? "File too large. Maximum upload size is 10MB."
+        ? `File too large. Maximum upload size is ${Math.round(env.UPLOAD_MAX_FILE_SIZE / (1024 * 1024))}MB per file.`
         : `Upload failed: ${err.message}`;
+  }
+
+  if (err.type === "entity.too.large") {
+    statusCode = 413;
+    message = "Request entity too large. Reduce the upload size and try again.";
   }
 
   if (err.code === "P2002") {
@@ -38,6 +43,12 @@ const errorMiddleware = (err, req, res, next) => {
     path: req.originalUrl,
     method: req.method,
     ip: req.ip,
+    contentLength: req.headers["content-length"],
+    files: [req.file, ...Object.values(req.files || {}).flat()].filter(Boolean).map((file) => ({
+      field: file.fieldname,
+      size: file.size,
+      mimeType: file.mimetype,
+    })),
   });
 
   const response = {

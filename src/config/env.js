@@ -33,6 +33,7 @@ const env = {
   NEWSLETTER_BATCH_DELAY: parseInt(process.env.NEWSLETTER_BATCH_DELAY, 10) || 3000,
   NEWSLETTER_MAX_ATTEMPTS: parseInt(process.env.NEWSLETTER_MAX_ATTEMPTS, 10) || 3,
   NEWSLETTER_FROM_NAME: process.env.NEWSLETTER_FROM_NAME || "AA NEEDLES",
+  UPLOAD_MAX_FILE_SIZE: parseInt(process.env.UPLOAD_MAX_FILE_SIZE, 10) || 10 * 1024 * 1024,
 };
 
 if (!env.JWT_SECRET || env.JWT_SECRET.length < 32) {

@@ -41,3 +41,20 @@ Backend API for Needles e-commerce platform built with Node.js, Express, Prisma,
 - **Banners**: `/api/banners`
 - **Testimonials**: `/api/testimonials`
 - **Dashboard**: `/api/dashboard`
+
+## Image upload deployment requirements
+
+Admin image and video uploads use `multipart/form-data` and are stored in Cloudinary.
+The backend accepts up to 10 MB per file by default (`UPLOAD_MAX_FILE_SIZE` can
+override this in bytes). The reverse proxy must allow the complete multipart
+request, including two banner images:
+
+```nginx
+location / {
+    client_max_body_size 25m;
+    proxy_pass http://127.0.0.1:5000;
+}
+```
+
+Keep the frontend upload budget below the proxy limit. The admin frontend
+compresses each image to at most 4 MB before sending it.

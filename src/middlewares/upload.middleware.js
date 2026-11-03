@@ -1,6 +1,7 @@
 const multer = require("multer");
 const { CloudinaryStorage } = require("multer-storage-cloudinary");
 const { cloudinary, getCloudinaryFolder } = require("../utils/cloudinary");
+const env = require("../config/env");
 
 const storage = new CloudinaryStorage({
   cloudinary,
@@ -81,19 +82,19 @@ const videoFileFilter = (req, file, cb) => {
 const upload = multer({
   storage,
   fileFilter,
-  limits: { fileSize: 10 * 1024 * 1024 },
+  limits: { fileSize: env.UPLOAD_MAX_FILE_SIZE },
 });
 
 const bannerUpload = multer({
   storage: multer.memoryStorage(),
   fileFilter,
-  limits: { fileSize: 10 * 1024 * 1024, files: 2 },
+  limits: { fileSize: env.UPLOAD_MAX_FILE_SIZE, files: 2 },
 });
 
 const videoUpload = multer({
   storage: videoStorage,
   fileFilter: videoFileFilter,
-  limits: { fileSize: 10 * 1024 * 1024 },
+  limits: { fileSize: env.UPLOAD_MAX_FILE_SIZE },
 });
 
 const isMultipartRequest = (req) => {
