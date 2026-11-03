@@ -57,4 +57,5 @@ location / {
 ```
 
 Keep the frontend upload budget below the proxy limit. The admin frontend
-compresses each image to at most 4 MB before sending it.
+compresses single images to 800 KB and each of the two optional banner images
+to 400 KB, keeping the complete banner multipart request below 1 MB.
