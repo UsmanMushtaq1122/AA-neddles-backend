@@ -191,6 +191,11 @@ function normalizeDescriptionSections(value) {
   };
 }
 
+function prepareDescriptionSections(value) {
+  const normalized = normalizeDescriptionSections(value);
+  return normalized;
+}
+
 function mapProductAttributes(product) {
   const sizes = normalizeStringArray(product.sizes);
   return {
@@ -238,7 +243,7 @@ const mapProduct = (product) => {
     }
   }
 
-  const fabric = product.fabric || "Cotton & Silk Blend";
+  const fabric = typeof product.fabric === "string" ? product.fabric.trim() : "";
 
   let categoryLabel = "Pret";
   if (product.category) {
@@ -431,7 +436,8 @@ exports.createProduct = async (data, file) => {
     isBestSeller: data.isBestSeller === "true" || data.isBestSeller === true,
     images: parseJsonField(data.images) || images,
     tags: parseJsonField(data.tags) || [],
-    descriptionSections: parseJsonField(data.descriptionSections),
+    descriptionSections: prepareDescriptionSections(data.descriptionSections),
+    fabric: typeof data.fabric === "string" ? data.fabric.trim() || null : null,
     sizes: parseJsonField(data.sizes),
     careInstructions: parseJsonField(data.careInstructions),
     seoTitle: data.seoTitle,
@@ -501,11 +507,14 @@ exports.updateProduct = async (id, data, file) => {
   if (data.isBestSeller !== undefined) updateData.isBestSeller = data.isBestSeller === "true" || data.isBestSeller === true;
   if (data.seoTitle !== undefined) updateData.seoTitle = data.seoTitle;
   if (data.seoDescription !== undefined) updateData.seoDescription = data.seoDescription;
+  if (data.fabric !== undefined) {
+    updateData.fabric = typeof data.fabric === "string" ? data.fabric.trim() || null : null;
+  }
   if (data.categoryId) updateData.categoryId = data.categoryId;
 
   if (data.tags !== undefined) updateData.tags = parseJsonField(data.tags);
   if (data.descriptionSections !== undefined) {
-    updateData.descriptionSections = parseJsonField(data.descriptionSections);
+    updateData.descriptionSections = prepareDescriptionSections(data.descriptionSections);
   }
   if (data.sizes !== undefined) updateData.sizes = parseJsonField(data.sizes);
   if (data.careInstructions !== undefined) updateData.careInstructions = parseJsonField(data.careInstructions);

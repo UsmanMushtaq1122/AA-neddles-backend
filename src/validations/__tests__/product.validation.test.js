@@ -41,3 +41,37 @@ describe("product size and care-instruction validation", () => {
     expect(error.details.some((detail) => detail.message.includes(field))).toBe(true);
   });
 });
+
+describe("product detailed description validation", () => {
+  test("parses structured JSON and preserves dynamic sections", () => {
+    const { error, value } = createProductSchema.validate({
+      name: "Detailed product",
+      price: "10",
+      stock: "2",
+      categoryId: "category-id",
+      fabric: " Silk ",
+      descriptionSections: JSON.stringify({
+        color: "Navy",
+        note: "Dry clean only",
+        sections: [{ title: "Shirt", items: ["Embroidered front", "Sleeves"] }],
+      }),
+    });
+
+    expect(error).toBeUndefined();
+    expect(value.fabric).toBe(" Silk ");
+    expect(value.descriptionSections.sections).toHaveLength(1);
+    expect(value.descriptionSections.sections[0].items).toEqual([
+      "Embroidered front",
+      "Sleeves",
+    ]);
+  });
+
+  test("rejects malformed structured description payloads", () => {
+    const { error } = updateProductSchema.validate({
+      name: "Detailed product",
+      descriptionSections: '{"sections":"not-an-array"}',
+    });
+
+    expect(error).toBeDefined();
+  });
+});

@@ -56,6 +56,36 @@ const stringArrayField = (label) => Joi.any()
     "any.invalid": `${label} must be an array of up to 100 non-empty strings.`,
   });
 
+const descriptionSectionsField = Joi.any()
+  .custom((value, helpers) => {
+    let parsed = value;
+    if (typeof value === "string") {
+      try {
+        parsed = JSON.parse(value);
+      } catch {
+        return helpers.error("any.invalid");
+      }
+    }
+
+    const { error, value: normalized } = Joi.object({
+      color: Joi.string().allow("", null),
+      note: Joi.string().allow("", null),
+      sections: Joi.array()
+        .items(
+          Joi.object({
+            title: Joi.string().allow("", null),
+            items: Joi.array().items(Joi.string().allow("", null)).max(100),
+          })
+        )
+        .max(100),
+    }).validate(parsed);
+    if (error) return helpers.error("any.invalid");
+    return normalized;
+  })
+  .messages({
+    "any.invalid": "Detailed description must contain valid sections and items.",
+  });
+
 const createProductSchema = Joi.object({
   name: nameField,
   description: stringField,
@@ -81,7 +111,8 @@ const createProductSchema = Joi.object({
   isBestSeller: Joi.alternatives().try(Joi.boolean(), Joi.string().valid("true", "false")),
   images: Joi.any(),
   tags: Joi.any(),
-  descriptionSections: Joi.any(),
+  descriptionSections: descriptionSectionsField,
+  fabric: stringField,
   sizes: stringArrayField("Sizes"),
   careInstructions: stringArrayField("Care instructions"),
   seoTitle: stringField,
@@ -115,7 +146,8 @@ const updateProductSchema = Joi.object({
   isBestSeller: Joi.alternatives().try(Joi.boolean(), Joi.string().valid("true", "false")),
   images: Joi.any(),
   tags: Joi.any(),
-  descriptionSections: Joi.any(),
+  descriptionSections: descriptionSectionsField,
+  fabric: stringField,
   sizes: stringArrayField("Sizes"),
   careInstructions: stringArrayField("Care instructions"),
   seoTitle: stringField,

@@ -126,6 +126,7 @@ model Product {
   images          Json        @default("[]")
   tags            Json        @default("[]")
   descriptionSections Json?
+  fabric          String?
   sizes           Json?
   careInstructions Json?
   seoTitle        String?
