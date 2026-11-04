@@ -89,14 +89,20 @@ exports.updateBanner = async (req, res, next) => {
     const desktopImage = req.files?.image?.[0] || req.file;
     const mobileImage = req.files?.mobileImage?.[0];
     if (desktopImage) {
-      data.image = desktopImage.path;
-      data.imagePublicId = desktopImage.filename;
+      const uploaded = desktopImage.buffer
+        ? await uploadBannerImage(req, desktopImage)
+        : desktopImage;
+      data.image = uploaded.path;
+      data.imagePublicId = uploaded.filename;
       oldPublicIds.push(banner.imagePublicId || extractPublicIdFromUrl(banner.image));
     } else if (req.body.image !== undefined || imageUrl !== undefined) {
       data.image = req.body.image || imageUrl;
     }
     if (mobileImage) {
-      data.mobileImage = mobileImage.path;
+      const uploaded = mobileImage.buffer
+        ? await uploadBannerImage(req, mobileImage)
+        : mobileImage;
+      data.mobileImage = uploaded.path;
       oldPublicIds.push(extractPublicIdFromUrl(banner.mobileImage));
     } else if (req.body.mobileImageUrl !== undefined) {
       data.mobileImage = req.body.mobileImageUrl || null;
@@ -121,11 +127,14 @@ exports.deleteBanner = async (req, res, next) => {
     const banner = await prisma.banner.findUnique({ where: { id: req.params.id } });
     if (!banner) throw new AppError("Banner not found", 404);
 
-    const publicId = banner.imagePublicId || extractPublicIdFromUrl(banner.image);
+    const publicIds = [
+      banner.imagePublicId || extractPublicIdFromUrl(banner.image),
+      extractPublicIdFromUrl(banner.mobileImage),
+    ].filter(Boolean);
 
     await prisma.banner.delete({ where: { id: req.params.id } });
 
-    if (publicId) {
+    for (const publicId of publicIds) {
       await deleteFromCloudinary(publicId);
     }
 
