@@ -164,12 +164,40 @@ function normalizeStringArray(value) {
     : [];
 }
 
+function normalizeDescriptionSections(value) {
+  const parsed = parseJsonField(value);
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+    return { color: "", sections: [], note: "" };
+  }
+
+  const sections = Array.isArray(parsed.sections)
+    ? parsed.sections
+        .filter((section) => section && typeof section === "object")
+        .map((section) => ({
+          title: typeof section.title === "string" ? section.title.trim() : "",
+          items: Array.isArray(section.items)
+            ? section.items
+                .filter((item) => typeof item === "string" && item.trim())
+                .map((item) => item.trim())
+            : [],
+        }))
+        .filter((section) => section.title && section.items.length > 0)
+    : [];
+
+  return {
+    color: typeof parsed.color === "string" ? parsed.color.trim() : "",
+    sections,
+    note: typeof parsed.note === "string" ? parsed.note.trim() : "",
+  };
+}
+
 function mapProductAttributes(product) {
   const sizes = normalizeStringArray(product.sizes);
   return {
     ...product,
     sizes: sizes.length > 0 ? sizes : ["XS", "S", "M", "L", "XL", "Custom"],
     careInstructions: normalizeStringArray(product.careInstructions),
+    descriptionSections: normalizeDescriptionSections(product.descriptionSections),
   };
 }
 
