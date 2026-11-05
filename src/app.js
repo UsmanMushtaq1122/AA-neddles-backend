@@ -43,11 +43,11 @@ app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
-      scriptSrc: ["'self'", "'unsafe-inline'", "https://apis.google.com"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "https://apis.google.com", "https://accounts.google.com"],
       styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
       imgSrc: ["'self'", "data:", "https://res.cloudinary.com", "https://*.googleusercontent.com"],
       fontSrc: ["'self'", "https://fonts.gstatic.com"],
-      connectSrc: ["'self'", "https://res.cloudinary.com"],
+      connectSrc: ["'self'", "https://res.cloudinary.com", "https://accounts.google.com"],
       frameSrc: ["'self'", "https://accounts.google.com"],
       objectSrc: ["'none'"],
     },

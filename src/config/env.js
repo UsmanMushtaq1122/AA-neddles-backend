@@ -8,6 +8,7 @@ const env = {
   JWT_REFRESH_SECRET: process.env.JWT_REFRESH_SECRET,
   JWT_EXPIRES_IN: process.env.JWT_EXPIRES_IN || "15m",
   JWT_REFRESH_EXPIRES_IN: process.env.JWT_REFRESH_EXPIRES_IN || "30d",
+  GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID?.trim() || "",
   FRONTEND_URL: process.env.FRONTEND_URL || (process.env.NODE_ENV === "production" ? "https://aaneedles.com" : "http://localhost:3000"),
   ADMIN_URL: process.env.ADMIN_URL || (process.env.NODE_ENV === "production" ? "https://aa-needles-admin.vercel.app" : "http://localhost:3001"),
   SMTP_HOST: process.env.SMTP_HOST,
@@ -46,6 +47,10 @@ if (!env.JWT_REFRESH_SECRET || env.JWT_REFRESH_SECRET.length < 32) {
 
 if (!env.DATABASE_URL) {
   throw new Error("FATAL: DATABASE_URL must be set in environment variables.");
+}
+
+if (env.GOOGLE_CLIENT_ID && !/^[0-9]+-[a-z0-9]+\.apps\.googleusercontent\.com$/.test(env.GOOGLE_CLIENT_ID)) {
+  throw new Error("FATAL: GOOGLE_CLIENT_ID must be a valid Google OAuth web client ID.");
 }
 
 if (!env.CLOUDINARY_CLOUD_NAME) {

@@ -1,4 +1,5 @@
 const prisma = require("../config/db");
+const env = require("../config/env");
 const bcrypt = require("bcryptjs");
 const crypto = require("crypto");
 const jwt = require("../utils/jwt");
@@ -16,7 +17,7 @@ const {
   OTP_RESEND_COOLDOWN_SECONDS,
 } = require("./otp.service");
 
-const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+const googleClient = new OAuth2Client();
 
 // ─────────────────────────────────────────────────────────────────────────────
 // REGISTRATION — Creates user, sends OTP; does NOT return JWT until verified
@@ -488,7 +489,7 @@ exports.socialLogin = async ({ provider, credential }) => {
   let email, name, avatar;
 
   if (provider === "google") {
-    if (!process.env.GOOGLE_CLIENT_ID) {
+    if (!env.GOOGLE_CLIENT_ID) {
       throw new AppError("Google sign-in is not configured on the server", 503);
     }
     if (!credential) {
@@ -497,9 +498,12 @@ exports.socialLogin = async ({ provider, credential }) => {
     try {
       const ticket = await googleClient.verifyIdToken({
         idToken: credential,
-        audience: process.env.GOOGLE_CLIENT_ID,
+        audience: env.GOOGLE_CLIENT_ID,
       });
       const payload = ticket.getPayload();
+      if (payload.email_verified !== true) {
+        throw new AppError("Google account email is not verified", 401);
+      }
       email = payload.email;
       name = payload.name;
       avatar = payload.picture;
@@ -526,28 +530,44 @@ exports.socialLogin = async ({ provider, credential }) => {
   if (!user) {
     const randomPassword = crypto.randomBytes(32).toString("hex");
     const hashedPassword = await bcrypt.hash(randomPassword, 12);
-    user = await prisma.$transaction(async (tx) => {
-      const newUser = await tx.user.create({
-        data: {
-          email,
-          name: name || email.split("@")[0],
-          password: hashedPassword,
-          role: "CUSTOMER",
-          avatar: avatar || null,
-          emailVerified: true, // Google verifies email
-        },
+    try {
+      user = await prisma.$transaction(async (tx) => {
+        const newUser = await tx.user.create({
+          data: {
+            email,
+            name: name || email.split("@")[0],
+            password: hashedPassword,
+            role: "CUSTOMER",
+            avatar: avatar || null,
+            emailVerified: true,
+          },
+        });
+        await tx.customer.create({
+          data: { email, name: name || email.split("@")[0], userId: newUser.id },
+        });
+        return newUser;
       });
-      await tx.customer.create({
-        data: { email, name: name || email.split("@")[0], userId: newUser.id },
+    } catch (err) {
+      if (err.code !== "P2002") throw err;
+      user = await prisma.user.findUnique({
+        where: { email },
+        include: { customer: true },
       });
-      return newUser;
-    });
-  } else {
-    user = await prisma.user.findUnique({
-      where: { id: user.id },
-      include: { customer: true },
-    });
+    }
   }
+
+  if (!user) {
+    throw new AppError("Unable to create or locate your account", 503);
+  }
+
+  if (!user.isActive) {
+    throw new AppError("Account has been deactivated. Please contact support.", 401);
+  }
+
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { lastLogin: new Date() },
+  });
 
   const token = jwt.generateToken({ id: user.id, role: user.role, customerId: user.customer?.id });
   const refreshToken = jwt.generateRefreshToken({ id: user.id, role: user.role, customerId: user.customer?.id });
